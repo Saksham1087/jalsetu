@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Complaints collection
+    match /complaints/{complaintId} {
+      // Authenticated users can create complaints with their own userId
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll(['userId', 'userName', 'description', 'severity', 'lat', 'lng', 'createdAt', 'status'])
+        && request.resource.data.status == 'submitted';
+      
+      // Anyone authenticated can read all complaints
+      allow read: if request.auth != null;
+      
+      // Users can only update their own complaints (status changes)
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'updatedAt', 'timeline']);
+      
+      // Users cannot delete complaints (only admins via backend)
+      allow delete: if false;
+    }
+    
+    // Users collection (for profiles)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+  }
+}
