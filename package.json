@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
+    "canvas": "^3.2.3",
     "exif-js": "^2.3.0",
     "firebase": "^12.16.0",
     "leaflet": "^1.9.4",

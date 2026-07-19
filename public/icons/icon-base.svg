@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="waterGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0284c7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Water drop shape -->
+  <path d="M256 48C141.3 48 48 141.3 48 256c0 76.2 44.5 142.4 108.8 173.4 5.5 2.7 12.3 0.5 14.8-4.9l7.4-16c2.5-5.5 8.5-8.5 13.8-8.5h32c5.3 0 11.3 3 13.8 8.5l7.4 16c2.5 5.4 9.3 7.6 14.8 4.9C419.5 398.4 464 332.2 464 256c0-114.7-93.3-208-208-208z" fill="url(#waterGradient)"/>
+  <!-- Inner highlight -->
+  <path d="M256 104c-48.6 0-88 39.4-88 88 0 30.5 15.7 57.8 39.8 72.6 5.5 3.3 12.3 1.1 14.8-4.9l7.4-16c2.5-5.5 8.5-8.5 13.8-8.5h32c5.3 0 11.3 3 13.8 8.5l7.4 16c2.5 6 9.3 8.2 14.8 4.9C328.3 249.8 344 222.5 344 192c0-48.6-39.4-88-88-88z" fill="rgba(255,255,255,0.2)"/>
+  <!-- Water wave accent -->
+  <path d="M200 220c0-16.6 13.4-30 30-30s30 13.4 30 30" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="8" stroke-linecap="round"/>
+  <path d="M185 260c0-16.6 13.4-30 30-30s30 13.4 30 30" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="6" stroke-linecap="round"/>
+  <path d="M170 300c0-16.6 13.4-30 30-30s30 13.4 30 30" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4" stroke-linecap="round"/>
+</svg>

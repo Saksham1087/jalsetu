@@ -53,7 +53,7 @@ function App() {
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 safe-area-insets flex flex-col">
       <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
       
-      <main className="flex-1 overflow-hidden relative">
+      <main className="flex-1 min-h-0 overflow-hidden relative">
         {activeTab === 'map' && (
           <PublicMap 
             center={location ? [location.latitude, location.longitude] : [28.6139, 77.2090]}
