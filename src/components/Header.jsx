@@ -1,4 +1,5 @@
 import { GoogleSignInButton } from './GoogleSignInButton'
+import { appConfig } from '../lib/config'
 
 export function Header({ user, onLogin, onLogout }) {
   return (
@@ -10,7 +11,14 @@ export function Header({ user, onLogin, onLogout }) {
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7V11h4V7h2v4h4v2z"/>
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-gray-900">JalSetu</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-gray-900">JalSetu</h1>
+            {appConfig.isDemo && (
+              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded uppercase tracking-wider border border-amber-200">
+                Demo
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <GoogleSignInButton user={user} onAuthChange={onLogin} />

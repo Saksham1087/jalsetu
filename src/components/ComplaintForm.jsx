@@ -1,11 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from '../hooks/useLocation'
-import { addComplaint } from '../services/firestore'
-import EXIF from 'exif-js'
-import '../styles/complaint-form.css'
+import { appConfig } from '../lib/config'
 import '../styles/complaint-form.css'
 
-const SEVERITY_OPTIONS = [
+const TYPE_OPTIONS = [
   { value: 'critical_leak', label: 'Critical Leak', description: 'Major pipe burst, flooding' },
   { value: 'low_pressure', label: 'Low Pressure', description: 'Weak flow, cannot fill tanks' },
   { value: 'no_supply', label: 'No Supply', description: 'Complete water outage' },
@@ -14,19 +12,41 @@ const SEVERITY_OPTIONS = [
   { value: 'other', label: 'Other', description: 'Any other water issue' },
 ]
 
-const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`
+const MAX_PHOTO_SIZE = 1200
+const JPEG_QUALITY = 0.7
+
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > MAX_PHOTO_SIZE || height > MAX_PHOTO_SIZE) {
+        const ratio = Math.min(MAX_PHOTO_SIZE / width, MAX_PHOTO_SIZE / height)
+        width = Math.round(width * ratio)
+        height = Math.round(height * ratio)
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
 
 export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, onPrefillComplete }) {
   const [formData, setFormData] = useState({
-    severity: '',
+    type: '',
     description: '',
     latitude: '',
     longitude: '',
     address: '',
     landmark: '',
     ward: '',
-    photoURL: '',
-    photoFile: null,
+    images: [],
   })
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
@@ -34,32 +54,29 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
   const [showMap, setShowMap] = useState(false)
   const [mapReady, setMapReady] = useState(false)
   const [userMarker, setUserMarker] = useState(null)
-  
+
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const fileInputRef = useRef(null)
   const { getCurrentLocation } = useLocation()
 
-  // Apply prefill data
   useEffect(() => {
     if (prefill && !formData.description) {
       setFormData(prev => ({
         ...prev,
-        severity: prefill.suggestedSeverity || 'other',
+        type: prefill.suggestedType || 'other',
         description: prefill.userMessage || '',
       }))
     }
   }, [prefill])
 
-  // Notify parent when prefill is applied
   useEffect(() => {
     if (onPrefillComplete && prefill && formData.description) {
       onPrefillComplete()
     }
   }, [onPrefillComplete, prefill, formData.description])
 
-  // Initialize map when modal opens
   useEffect(() => {
     if (showMap && mapRef.current && !mapInstanceRef.current) {
       initMap()
@@ -70,7 +87,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
     try {
       const L = (await import('leaflet')).default
       await import('leaflet/dist/leaflet.css')
-      
+
       delete L.Icon.Default.prototype._getIconUrl
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -78,7 +95,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       })
 
-      const center = userMarker 
+      const center = userMarker
         ? [userMarker.lat, userMarker.lng]
         : (userLocation ? [userLocation.latitude, userLocation.longitude] : [28.6139, 77.2090])
 
@@ -175,95 +192,58 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
     }
   }, [getCurrentLocation])
 
-  const extractGPSFromPhoto = useCallback((file) => {
-    return new Promise((resolve) => {
-      EXIF.getData(file, function() {
-        const lat = EXIF.getTag(this, 'GPSLatitude')
-        const latRef = EXIF.getTag(this, 'GPSLatitudeRef')
-        const lon = EXIF.getTag(this, 'GPSLongitude')
-        const lonRef = EXIF.getTag(this, 'GPSLongitudeRef')
-        
-        if (lat && lon && latRef && lonRef) {
-          const convertDMS = (dms, ref) => {
-            const degrees = dms[0].numerator / dms[0].denominator
-            const minutes = dms[1].numerator / dms[1].denominator
-            const seconds = dms[2].numerator / dms[2].denominator
-            let decimal = degrees + minutes/60 + seconds/3600
-            if (ref === 'S' || ref === 'W') decimal = -decimal
-            return decimal
-          }
-          resolve({ lat: convertDMS(lat, latRef), lng: convertDMS(lon, lonRef) })
-        } else {
-          resolve(null)
-        }
-      })
-    })
-  }, [])
-
-  const uploadToCloudinary = async (file) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET)
-    formData.append('folder', 'jalsetu/complaints')
-    formData.append('tags', 'complaint,user_upload')
-    formData.append('context', `user_id=${user?.uid || 'anonymous'}|severity=${formData.severity}`)
-
-    const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || 'Upload failed')
-    return data.secure_url
-  }
-
-  const updateLocation = useCallback(async (lat, lng) => {
-    setUserMarker({ lat, lng })
-    setFormData(prev => ({
-      ...prev,
-      latitude: lat.toString(),
-      longitude: lng.toString(),
-    }))
-    reverseGeocode(lat, lng)
-  }, [])
-
-  const handlePhotoSelect = async (file) => {
+  const handlePhotoUpload = useCallback(async (e) => {
+    const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({ ...prev, photo: 'Please select an image file' }))
-      return
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, photo: 'Image must be less than 10MB' }))
-      return
-    }
 
     setUploading(true)
-    setErrors(prev => ({ ...prev, photo: null }))
-
     try {
-      const gps = await extractGPSFromPhoto(file)
-      if (gps) {
-        await updateLocation(gps.lat, gps.lng)
+      if (appConfig.hasCloudinary && window.cloudinary) {
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+        const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+        if (cloudName && uploadPreset) {
+          window.cloudinary.openUploadWidget(
+            {
+              cloudName, uploadPreset,
+              folder: 'jalsetu/complaints',
+              tags: ['complaint', 'user_upload'],
+              context: { user_id: user?.uid || 'anonymous', type: formData.type },
+              maxFileSize: 10 * 1024 * 1024, resourceType: 'image', multiple: false,
+              showAdvancedOptions: false, clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'], theme: 'white',
+            },
+            (error, result) => {
+              setUploading(false)
+              if (error) {
+                setErrors(prev => ({ ...prev, photo: error.message || 'Upload failed' }))
+                return
+              }
+              if (result?.info?.secure_url) {
+                setFormData(prev => ({ ...prev, images: [result.info.secure_url] }))
+              }
+            }
+          )
+          return
+        }
       }
 
-      const url = await uploadToCloudinary(file)
-      setFormData(prev => ({
-        ...prev,
-        photoURL: url,
-        photoFile: file,
-      }))
+      if (file.size > 10 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, photo: 'Photo must be under 10MB' }))
+        setUploading(false)
+        return
+      }
+
+      const dataUrl = await resizeImage(file)
+      setFormData(prev => ({ ...prev, images: [dataUrl] }))
     } catch (err) {
-      setErrors(prev => ({ ...prev, photo: err.message || 'Failed to upload photo' }))
+      setErrors(prev => ({ ...prev, photo: err.message || 'Upload failed' }))
     } finally {
       setUploading(false)
     }
-  }
-
-  const handleImagePick = (e) => {
-    const file = e.target.files[0]
-    if (file) handlePhotoSelect(file)
-  }
+  }, [formData.type, user])
 
   const removePhoto = () => {
-    setFormData(prev => ({ ...prev, photoURL: '', photoFile: null }))
+    setFormData(prev => ({ ...prev, images: [] }))
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const handleSubmit = async (e) => {
@@ -272,10 +252,10 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
 
     const newErrors = {}
     if (!formData.description.trim()) newErrors.description = 'Description is required'
-    if (!formData.severity) newErrors.severity = 'Please select severity'
+    if (!formData.type) newErrors.type = 'Please select type'
     if (!formData.latitude || !formData.longitude) newErrors.location = 'Please select location on map'
-    if (!formData.photoURL) newErrors.photo = 'Please upload a photo'
-    if (!user) newErrors.auth = 'Please sign in to submit'
+
+    if (!appConfig.isDemo && !user) newErrors.auth = 'Please sign in to submit'
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -285,33 +265,32 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
     setSubmitting(true)
     try {
       const complaintData = {
+        type: formData.type,
         description: formData.description,
-        severity: formData.severity,
-        photoURL: formData.photoURL,
-        lat: parseFloat(formData.latitude),
-        lng: parseFloat(formData.longitude),
+        images: formData.images,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
         address: formData.address,
         ward: formData.ward,
         landmark: formData.landmark,
       }
 
-      const newComplaint = await addComplaint(user, complaintData)
-      
+      const result = await onSubmit(complaintData)
+
       setFormData({
-        severity: '',
+        type: '',
         description: '',
         latitude: '',
         longitude: '',
         address: '',
         landmark: '',
         ward: '',
-        photoURL: '',
-        photoFile: null,
+        images: [],
       })
       setUserMarker(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
-      
-      if (onSubmit) onSubmit(newComplaint)
+
+      if (onSubmit) onSubmit(result)
     } catch (err) {
       setErrors({ submit: err.message || 'Failed to submit complaint' })
     } finally {
@@ -320,7 +299,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-gray-50 pb-24 safe-area-inset-bottom overflow-y-auto">
+    <div className="bg-gray-50 safe-area-inset-bottom overflow-y-auto">
       <form onSubmit={handleSubmit} className="px-4 py-4 space-y-6" noValidate>
         <div className="max-w-xl mx-auto">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Report Water Issue</h2>
@@ -332,25 +311,23 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
             </div>
           )}
 
-          {/* Severity Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Severity *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
             <select
-              value={formData.severity}
-              onChange={(e) => setFormData(prev => ({ ...prev, severity: e.target.value }))}
-              className={`w-full px-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E")] bg-right bg-no-repeat pr-8 ${errors.severity ? 'border-red-500' : 'border-gray-300'}`}
+              value={formData.type}
+              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+              className={`w-full px-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E")] bg-right bg-no-repeat pr-8 ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
             >
-              <option value="" disabled>Select severity</option>
-              {SEVERITY_OPTIONS.map(opt => (
+              <option value="" disabled>Select type</option>
+              {TYPE_OPTIONS.map(opt => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label} — {opt.description}
                 </option>
               ))}
             </select>
-            {errors.severity && <p className="mt-1 text-sm text-red-600">{errors.severity}</p>}
+            {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
             <textarea
@@ -363,22 +340,12 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
             {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
           </div>
 
-          {/* Photo Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Photo * (Max 10MB)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Photo (Max 10MB)</label>
             <div className="space-y-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImagePick}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                disabled={uploading}
-              />
-              
-              {formData.photoURL ? (
+              {formData.images.length > 0 ? (
                 <div className="relative aspect-square max-w-xs rounded-lg overflow-hidden border border-gray-200">
-                  <img src={formData.photoURL} alt="Uploaded complaint photo" className="w-full h-full object-cover" />
+                  <img src={formData.images[0]} alt="Uploaded complaint photo" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={removePhoto}
@@ -397,26 +364,30 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
                   )}
                 </div>
               ) : (
-                <label className="relative aspect-square w-full max-w-xs rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="relative aspect-square w-full max-w-xs rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span className="text-gray-600 font-medium">Tap to upload photo</span>
                   <span className="text-xs text-gray-400">JPG, PNG up to 10MB</span>
-                </label>
+                </button>
               )}
-              
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={handlePhotoUpload} />
               {uploading && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                  Uploading to Cloudinary...
+                  Processing photo...
                 </div>
               )}
               {errors.photo && <p className="text-sm text-red-600">{errors.photo}</p>}
             </div>
           </div>
 
-          {/* Location */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
             <div className="space-y-2">
@@ -444,7 +415,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
                   Pick on Map
                 </button>
               </div>
-              
+
               {(formData.latitude && formData.longitude) && (
                 <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
                   <p className="text-sm text-primary-800 font-medium flex items-center gap-1">
@@ -468,7 +439,6 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
             </div>
           </div>
 
-          {/* Ward / Landmark */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Ward / Area</label>
@@ -492,7 +462,6 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={submitting || loading || uploading}
@@ -507,7 +476,6 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
         </div>
       </form>
 
-      {/* Map Modal */}
       {showMap && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col safe-area-insets animate-slide-up" role="dialog" aria-modal="true" aria-labelledby="map-title">
           <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
@@ -518,7 +486,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
               </svg>
             </button>
           </div>
-          
+
           <div className="flex-1 relative" style={{ height: '100%' }}>
             <div ref={mapRef} className="absolute inset-0" />
             {!mapReady && (
@@ -529,7 +497,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
                 </div>
               </div>
             )}
-            
+
             {mapReady && userMarker && (
               <div className="absolute top-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg flex items-center gap-2 max-w-md mx-auto">
                 <svg className="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,6 +1,27 @@
 import { useState, useCallback, useEffect } from 'react'
 import { subscribeToUserComplaints, addComplaint, updateComplaintStatus, getAllComplaints } from '../services/firestore'
 import { complaintService } from '../services/complaintService'
+import { appConfig } from '../lib/config'
+
+function normalizeData(items) {
+  return (items || []).map(c => ({
+    ...c,
+    latitude: c.latitude ?? c.lat ?? null,
+    longitude: c.longitude ?? c.lng ?? null,
+    type: c.type ?? c.severity ?? 'other',
+    images: Array.isArray(c.images)
+      ? c.images
+      : c.photoURL
+        ? [c.photoURL]
+        : [],
+    createdAt: c.createdAt?.toDate
+      ? c.createdAt.toDate().toISOString()
+      : c.createdAt,
+    updatedAt: c.updatedAt?.toDate
+      ? c.updatedAt.toDate().toISOString()
+      : c.updatedAt,
+  }))
+}
 
 export function useComplaints(userLocation, user) {
   const [complaints, setComplaints] = useState([])
@@ -9,16 +30,20 @@ export function useComplaints(userLocation, user) {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (!user) {
+    if (!appConfig.hasFirebase) {
       complaintService.seedDemoData()
-      const demo = complaintService.getAll()
-      setComplaints(demo)
+      setComplaints(normalizeData(complaintService.getAll()))
       setLoading(false)
       return
     }
 
-    const unsubscribe = subscribeToUserComplaints(user.uid, (userComplaints) => {
-      setComplaints(userComplaints)
+    if (!user || user.isDemoUser) {
+      setLoading(false)
+      return
+    }
+
+    const unsubscribe = subscribeToUserComplaints(user.uid, (data) => {
+      setComplaints(normalizeData(data))
       setLoading(false)
     }, (err) => {
       setError(err.message)
@@ -29,12 +54,24 @@ export function useComplaints(userLocation, user) {
   }, [user, userLocation])
 
   const submitComplaint = useCallback(async (complaintData) => {
-    if (!user) throw new Error('Must be logged in')
+    if (!appConfig.hasFirebase) {
+      setSubmitting(true)
+      setError(null)
+      try {
+        return await complaintService.create(complaintData)
+      } catch (err) {
+        setError(err.message || 'Failed to submit complaint')
+        throw err
+      } finally {
+        setSubmitting(false)
+      }
+    }
+
+    if (!user || user.isDemoUser) throw new Error('Must be logged in')
     setSubmitting(true)
     setError(null)
     try {
-      const newComplaint = await addComplaint(user, complaintData)
-      return newComplaint
+      return await addComplaint(user, complaintData)
     } catch (err) {
       setError(err.message || 'Failed to submit complaint')
       throw err
@@ -44,6 +81,15 @@ export function useComplaints(userLocation, user) {
   }, [user])
 
   const updateComplaint = useCallback(async (id, updates) => {
+    if (!appConfig.hasFirebase) {
+      try {
+        return await complaintService.update(id, updates)
+      } catch (err) {
+        setError(err.message || 'Failed to update complaint')
+        throw err
+      }
+    }
+
     try {
       await updateComplaintStatus(id, updates.status)
     } catch (err) {
@@ -57,13 +103,13 @@ export function useComplaints(userLocation, user) {
   }, [])
 
   const refresh = useCallback(async () => {
-    if (!user) {
-      const demo = complaintService.getAll()
-      setComplaints(demo)
+    if (!appConfig.hasFirebase) {
+      setComplaints(normalizeData(complaintService.getAll()))
       return
     }
+    if (!user || user.isDemoUser) return
     const all = await getAllComplaints()
-    setComplaints(all.filter(c => c.userId === user.uid))
+    setComplaints(normalizeData(all.filter(c => c.userId === user.uid)))
   }, [user])
 
   return {

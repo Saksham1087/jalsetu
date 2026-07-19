@@ -30,6 +30,22 @@ export function GoogleSignInButton({ user, onAuthChange }) {
     }
   }
 
+  if (user?.isDemoUser) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded-full border border-amber-200">
+          Demo Mode
+        </span>
+        <button
+          onClick={handleSignOut}
+          className="touch-target px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
+        >
+          Sign Out
+        </button>
+      </div>
+    )
+  }
+
   if (user) {
     return (
       <div className="flex items-center gap-2">

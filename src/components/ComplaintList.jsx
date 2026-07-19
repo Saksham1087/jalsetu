@@ -15,7 +15,8 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
   }, [onRefresh])
 
   const sortedComplaints = useMemo(() => {
-    let filtered = complaints.filter(c => {
+    const complaintsArray = Array.isArray(complaints) ? complaints : []
+    let filtered = complaintsArray.filter(c => {
       if (filter.type && c.type !== filter.type) return false
       if (filter.status && c.status !== filter.status) return false
       if (filter.search) {

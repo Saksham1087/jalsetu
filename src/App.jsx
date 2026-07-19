@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { ComplaintForm } from './components/ComplaintForm'
 import { ComplaintList } from './components/ComplaintList'
-import { MapView } from './components/MapView'
 import { PublicMap } from './components/PublicMap'
 import { Header } from './components/Header'
 import { BottomNav } from './components/BottomNav'
@@ -10,21 +9,15 @@ import { ChatWidget } from './components/ChatWidget'
 import { useComplaints } from './hooks/useComplaints'
 import { useLocation } from './hooks/useLocation'
 import { useAuth } from './hooks/useAuth'
-import { complaintService } from './services/complaintService'
 
 function App() {
   const [activeTab, setActiveTab] = useState('map')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [prefillComplaint, setPrefillComplaint] = useState(null)
   
-  const { complaints, loading, error, submitComplaint, refresh, updateComplaint } = useComplaints()
   const { location, error: locationError, getCurrentLocation, requestPermission } = useLocation()
+  const { complaints, loading, error, submitComplaint, refresh, updateComplaint } = useComplaints(location, null)
   const { user, loading: authLoading, login, logout } = useAuth()
-
-  useEffect(() => {
-    complaintService.seedDemoData()
-    refresh()
-  }, [refresh])
 
   const handleLogin = useCallback(async () => {
     try { await login() } catch (err) { console.error('Login error:', err) }
@@ -44,11 +37,6 @@ function App() {
     await requestPermission()
   }, [requestPermission])
 
-  const handleFileComplaintFromChat = useCallback((userMessage, suggestedSeverity) => {
-    setPrefillComplaint({ userMessage, suggestedSeverity })
-    setActiveTab('report')
-  }, [])
-
   return (
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 safe-area-insets flex flex-col">
       <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
@@ -56,6 +44,8 @@ function App() {
       <main className="flex-1 min-h-0 overflow-hidden relative">
         {activeTab === 'map' && (
           <PublicMap 
+            complaints={complaints}
+            loading={loading}
             center={location ? [location.latitude, location.longitude] : [28.6139, 77.2090]}
             zoom={location ? 15 : 12}
             onComplaintClick={handleComplaintSelect}
@@ -113,7 +103,6 @@ function App() {
       {/* Chat Widget */}
       <ChatWidget 
         user={user} 
-        onFileComplaint={handleFileComplaintFromChat}
         position="bottom-right"
       />
     </div>
