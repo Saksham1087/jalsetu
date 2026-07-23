@@ -26,7 +26,7 @@ export function AdminLayout({ complaints, onUpdateStatus, onNavigateHome }) {
             <h1 className="text-lg font-bold text-gray-900">JalSetu Admin</h1>
             <p className="text-xs text-gray-500">MBMC Water Management</p>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 text-gray-400 hover:text-gray-600">
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 text-gray-400 hover:text-gray-600 touch-target">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

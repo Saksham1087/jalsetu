@@ -102,12 +102,26 @@ export function PublicMap({
   const [fbLoading, setFbLoading] = useState(appConfig.hasFirebase)
   const [filterType, setFilterType] = useState([])
   const [filterWard, setFilterWard] = useState('')
+  const [showFilters, setShowFilters] = useState(true)
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
 
   useEffect(() => {
     if (mapContainerRef.current && mapRef.current) {
       mapRef.current.invalidateSize()
+    }
+
+    const handleResize = () => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize()
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize)
+      return () => {
+        window.visualViewport.removeEventListener('resize', handleResize)
+      }
     }
   }, [])
 
@@ -179,7 +193,7 @@ export function PublicMap({
     const arr = Array.isArray(complaints) ? complaints : []
     return (
       <div className="absolute top-4 left-4 right-4 z-[1000] flex justify-center pointer-events-none">
-        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl px-4 py-2 border border-gray-200 flex items-center gap-4 flex-wrap pointer-events-auto">
+        <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl px-4 py-2 border border-gray-200 flex items-center gap-4 flex-wrap pointer-events-auto pr-14">
           {filterKeys.map((key) => {
             const color = typeColors[key]
             const count = arr.filter(c => normalizeType(c.type ?? c.severity) === key).length
@@ -300,7 +314,7 @@ return (
         className="absolute inset-0"
         whenCreated={(map) => {
           mapRef.current = map
-          setTimeout(() => map.invalidateSize(), 0)
+          setTimeout(() => map.invalidateSize(), 100)
         }}
       >
         <TileLayer
@@ -329,15 +343,17 @@ return (
         <div className="leaflet-control-zoom leaflet-bar leaflet-control leaflet-control-custom absolute top-4 right-4 z-[1000]">
           <button
             onClick={() => mapRef.current?.zoomIn?.()}
-            className="leaflet-control-zoom-in bg-white hover:bg-gray-50 border-b border-gray-200 w-10 h-10 flex items-center justify-center text-gray-700"
+            className="leaflet-control-zoom-in bg-white hover:bg-gray-50 border-b border-gray-200 w-11 h-11 flex items-center justify-center text-gray-700 touch-target"
             aria-label="Zoom in"
+            type="button"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           </button>
           <button
             onClick={() => mapRef.current?.zoomOut?.()}
-            className="leaflet-control-zoom-out bg-white hover:bg-gray-50 w-10 h-10 flex items-center justify-center text-gray-700"
+            className="leaflet-control-zoom-out bg-white hover:bg-gray-50 w-11 h-11 flex items-center justify-center text-gray-700 touch-target"
             aria-label="Zoom out"
+            type="button"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
           </button>
@@ -352,8 +368,9 @@ return (
                 mapRef.current.locate({ setView: true, maxZoom: 16 })
               }
             }}
-            className="absolute top-16 right-4 z-[1000] w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="absolute top-[112px] right-4 z-[1000] w-11 h-11 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors touch-target"
             aria-label="Locate me"
+            type="button"
           >
             <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -363,7 +380,23 @@ return (
         )}
 
         <StatsBar complaints={filteredComplaints} />
-        <SeverityLegend rawComplaints={rawComplaints} filterType={filterType} onFilterChange={handleFilterChange} filterWard={filterWard} onWardChange={setFilterWard} />
+        {showFilters && <SeverityLegend rawComplaints={rawComplaints} filterType={filterType} onFilterChange={handleFilterChange} filterWard={filterWard} onWardChange={setFilterWard} />}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="lg:hidden absolute bottom-24 right-4 z-[1000] w-11 h-11 bg-white rounded-full shadow-lg flex items-center justify-center touch-target hover:bg-gray-50 active:bg-gray-100 transition-colors"
+          aria-label={showFilters ? 'Hide filters' : 'Show filters'}
+          type="button"
+        >
+          {showFilters ? (
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          )}
+        </button>
       </MapContainer>
     </div>
   )

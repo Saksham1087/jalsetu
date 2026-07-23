@@ -52,7 +52,7 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
             <p className="text-gray-700 text-sm whitespace-pre-wrap">{complaint.description}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {complaint.ward && (
               <div className="bg-gray-50 rounded-lg p-3">
                 <p className="text-xs text-gray-500">Ward / Area</p>

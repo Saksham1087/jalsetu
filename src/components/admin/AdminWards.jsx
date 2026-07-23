@@ -79,7 +79,7 @@ export function AdminWards({ complaints }) {
               <p className="font-medium text-gray-900">Website</p>
               <p className="text-xs text-gray-500">MBMC official portal</p>
             </div>
-            <a href={MIRA_BHAYANDER.contacts.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 font-medium hover:underline">
+            <a href={MIRA_BHAYANDER.contacts.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 font-medium hover:underline truncate max-w-[200px] sm:max-w-[300px]">
               {MIRA_BHAYANDER.contacts.website.replace('https://', '')}
             </a>
           </div>

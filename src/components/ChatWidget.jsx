@@ -136,7 +136,7 @@ export function ChatWidget({ position = 'bottom-right' }) {
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-96 max-w-[calc(100vw-1rem)] h-[500px] max-h-[70vh] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col animate-slide-up">
+        <div className="absolute bottom-16 right-0 w-96 max-w-[calc(100vw-1rem)] h-[500px] max-h-[70vh] min-h-[300px] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col animate-slide-up">
           <div className="bg-primary-600 text-white px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">

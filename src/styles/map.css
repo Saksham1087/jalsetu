@@ -107,7 +107,9 @@
 }
 
 .custom-popup .leaflet-popup-content {
-  width: 280px !important;
+  width: fit-content !important;
+  max-width: 280px !important;
+  min-width: 200px !important;
 }
 
 .view-details-btn {

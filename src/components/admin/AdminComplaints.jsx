@@ -45,7 +45,7 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
             />
           </div>
-          <div className="w-40">
+          <div className="flex-1 min-w-[120px]">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -59,7 +59,7 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
               <option value="rejected">Rejected</option>
             </select>
           </div>
-          <div className="w-48">
+          <div className="flex-1 min-w-[120px]">
             <select
               value={wardFilter}
               onChange={(e) => setWardFilter(e.target.value)}

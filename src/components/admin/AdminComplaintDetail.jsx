@@ -46,7 +46,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white">
           <h2 className="text-lg font-semibold text-gray-900">Complaint Details</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 touch-target">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -71,7 +71,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
           </div>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <h3 className="text-sm font-medium text-gray-500 mb-1">Type</h3>
               <p className="text-gray-900 capitalize">{complaint.type || complaint.severity || 'N/A'}</p>
@@ -146,7 +146,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
                 <button
                   key={s.value}
                   onClick={() => { setSelectedStatus(s.value); setUpdateError(null) }}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  className={`touch-target px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     selectedStatus === s.value
                       ? `${s.color.replace('bg-', 'bg-').replace('500', '100')} ${s.color.replace('bg-', 'text-').replace('500', '800')} border-2 border-current`
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

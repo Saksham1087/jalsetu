@@ -50,7 +50,7 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
               <div className={`w-3 h-3 rounded-full ${stat.color}`} />
               <span className="text-sm text-gray-500">{stat.label}</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -126,7 +126,7 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
                     </div>
                     <button
                       onClick={() => onSelectComplaint(complaint)}
-                      className="px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors flex-shrink-0"
+                      className="touch-target px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors flex-shrink-0"
                     >
                       View
                     </button>

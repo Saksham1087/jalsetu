@@ -25,7 +25,7 @@ export function ComplaintCard({ complaint, userLocation, index }) {
   const config = statusConfig[complaint.status] || statusConfig.submitted
 
   return (
-    <article className="bg-white rounded-xl border shadow-sm overflow-hidden touch-target" style={{ animationDelay: `${index * 50}ms` }}>
+    <article className="bg-white rounded-xl border shadow-sm overflow-hidden" style={{ animationDelay: `${index * 50}ms` }}>
       <div className={`p-4 ${config.bg} border-b ${config.border}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -95,14 +95,6 @@ export function ComplaintCard({ complaint, userLocation, index }) {
       </div>
     </article>
   )
-}
-
-const statusConfig = {
-  submitted: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Submitted' },
-  acknowledged: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Acknowledged' },
-  in_progress: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: 'In Progress' },
-  resolved: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', label: 'Resolved' },
-  rejected: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Rejected' },
 }
 
 function formatType(type) {
