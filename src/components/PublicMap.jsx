@@ -7,6 +7,7 @@ import 'leaflet.markercluster'
 import L from 'leaflet'
 import { subscribeToAllComplaints } from '../services/firestore'
 import { appConfig } from '../lib/config'
+import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import '../styles/map.css'
 
 const typeColors = {
@@ -81,8 +82,8 @@ function createPopupContent(complaint) {
 }
 
 export function PublicMap({
-  center = [28.6139, 77.2090],
-  zoom = 12,
+  center = MIRA_BHAYANDER.center,
+  zoom = MIRA_BHAYANDER.defaultZoom,
   onComplaintClick,
   showUserLocation = true,
   userLocation,
@@ -124,9 +125,12 @@ export function PublicMap({
     return L.latLngBounds(coords)
   }, [filteredComplaints])
 
+  const hasFittedBounds = useRef(false)
+
   useEffect(() => {
-    if (bounds && mapRef.current) {
+    if (bounds && mapRef.current && !hasFittedBounds.current) {
       mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 })
+      hasFittedBounds.current = true
     }
   }, [bounds])
 
@@ -228,14 +232,16 @@ export function PublicMap({
     )
   }
 
-  return (
-    <div className="relative h-full w-full">
-      <MapContainer
+return (
+    <div className="relative h-screen w-full">
+    <MapContainer
         ref={mapRef}
         center={center}
         zoom={zoom}
         zoomControl={false}
         attributionControl={false}
+        maxBounds={MIRA_BHAYANDER.bounds}
+        maxBoundsViscosity={1.0}
         className="h-full w-full"
         style={{ height: '100%', width: '100%' }}
       >

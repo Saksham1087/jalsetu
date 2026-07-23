@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from '../hooks/useLocation'
 import { appConfig } from '../lib/config'
+import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import '../styles/complaint-form.css'
 
 const TYPE_OPTIONS = [
@@ -37,7 +38,7 @@ function resizeImage(file) {
   })
 }
 
-export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, onPrefillComplete }) {
+export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loading, prefill, onPrefillComplete }) {
   const [formData, setFormData] = useState({
     type: '',
     description: '',
@@ -46,6 +47,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
     address: '',
     landmark: '',
     ward: '',
+    mobile: '',
     images: [],
   })
   const [errors, setErrors] = useState({})
@@ -59,7 +61,21 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
   const markerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const fileInputRef = useRef(null)
-  const { getCurrentLocation } = useLocation()
+  const { getCurrentLocation, permission, location } = useLocation()
+  const [geoInitAttempted, setGeoInitAttempted] = useState(false)
+
+  useEffect(() => {
+    if (geoInitAttempted) return
+    if (location && !formData.latitude) {
+      setFormData(prev => ({
+        ...prev,
+        latitude: location.latitude.toString(),
+        longitude: location.longitude.toString(),
+      }))
+      reverseGeocode(location.latitude, location.longitude)
+      setGeoInitAttempted(true)
+    }
+  }, [location])
 
   useEffect(() => {
     if (prefill && !formData.description) {
@@ -255,7 +271,9 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
     if (!formData.type) newErrors.type = 'Please select type'
     if (!formData.latitude || !formData.longitude) newErrors.location = 'Please select location on map'
 
-    if (!appConfig.isDemo && !user) newErrors.auth = 'Please sign in to submit'
+    if (!authLoading && !appConfig.isDemo && !user) {
+      newErrors.auth = 'Please sign in to submit'
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -273,6 +291,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
         address: formData.address,
         ward: formData.ward,
         landmark: formData.landmark,
+        mobile: formData.mobile || null,
       }
 
       const result = await onSubmit(complaintData)
@@ -285,6 +304,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
         address: '',
         landmark: '',
         ward: '',
+        mobile: '',
         images: [],
       })
       setUserMarker(null)
@@ -299,15 +319,28 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
   }
 
   return (
-    <div className="bg-gray-50 safe-area-inset-bottom overflow-y-auto">
+    <div className="bg-gray-50 safe-area-inset-bottom overflow-y-auto pb-32">
       <form onSubmit={handleSubmit} className="px-4 py-4 space-y-6" noValidate>
-        <div className="max-w-xl mx-auto">
+        <div className="max-w-xl mx-auto pb-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Report Water Issue</h2>
           <p className="text-gray-500 text-sm mb-6">Help us improve water supply in your area</p>
 
           {errors.submit && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
               {errors.submit}
+            </div>
+          )}
+
+          {authLoading && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              Checking authentication...
+            </div>
+          )}
+
+          {!authLoading && !user && !appConfig.isDemo && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm">
+              Please sign in to submit a complaint.
             </div>
           )}
 
@@ -416,6 +449,16 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
                 </button>
               </div>
 
+              {!formData.latitude && permission === 'denied' && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <p className="text-sm text-amber-800 font-medium flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    Enable Location
+                  </p>
+                  <p className="text-xs text-amber-700 mt-1">Location access is blocked. Please enable it in browser settings or use the map to mark your location.</p>
+                </div>
+              )}
+
               {(formData.latitude && formData.longitude) && (
                 <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
                   <p className="text-sm text-primary-800 font-medium flex items-center gap-1">
@@ -442,13 +485,16 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Ward / Area</label>
-              <input
-                type="text"
+              <select
                 value={formData.ward}
                 onChange={(e) => setFormData(prev => ({ ...prev, ward: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Ward / Area"
-              />
+                className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E")] bg-right bg-no-repeat pr-8`}
+              >
+                <option value="">Select Ward</option>
+                {MIRA_BHAYANDER.wards.map(w => (
+                  <option key={w.id} value={w.name}>{w.name} — {w.area}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Landmark</label>
@@ -462,10 +508,24 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number (optional)</label>
+            <input
+              type="tel"
+              value={formData.mobile}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 10)
+                setFormData(prev => ({ ...prev, mobile: val }))
+              }}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              placeholder="10-digit mobile number"
+            />
+          </div>
+
           <button
             type="submit"
-            disabled={submitting || loading || uploading}
-            className="w-full touch-target bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 active:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={submitting || loading || uploading || authLoading || (!appConfig.isDemo && !user)}
+            className="w-full mt-8 touch-target min-h-[48px] py-3.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 active:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Submitting...' : uploading ? 'Uploading photo...' : 'Submit Complaint'}
           </button>
@@ -509,7 +569,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, loading, prefill, 
             )}
           </div>
 
-          <div className="p-4 border-t border-gray-200 sticky bottom-0 bg-white safe-area-inset-bottom flex gap-2">
+          <div className="p-4 border-t border-gray-200 bg-white">
             <button
               type="button"
               onClick={handleLocationPick}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { ComplaintForm } from './components/ComplaintForm'
 import { ComplaintList } from './components/ComplaintList'
 import { PublicMap } from './components/PublicMap'
@@ -6,18 +6,57 @@ import { Header } from './components/Header'
 import { BottomNav } from './components/BottomNav'
 import { ComplaintDetail } from './components/ComplaintDetail'
 import { ChatWidget } from './components/ChatWidget'
+import { AdminLoginPage } from './components/AdminLoginPage'
+import { AdminLayout } from './components/admin/AdminLayout'
+import { AdminDashboard } from './components/admin/AdminDashboard'
+import { AdminComplaintDetail } from './components/admin/AdminComplaintDetail'
 import { useComplaints } from './hooks/useComplaints'
 import { useLocation } from './hooks/useLocation'
-import { useAuth } from './hooks/useAuth'
+import { AuthProvider, useAuthContext } from './contexts/AuthContext'
 
-function App() {
+function AppInner() {
   const [activeTab, setActiveTab] = useState('map')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [prefillComplaint, setPrefillComplaint] = useState(null)
+  const [route, setRoute] = useState('main')
+  const [adminComplaints] = useState([])
+  const [adminSelectedComplaint, setAdminSelectedComplaint] = useState(null)
   
-  const { location, error: locationError, getCurrentLocation, requestPermission } = useLocation()
-  const { complaints, loading, error, submitComplaint, refresh, updateComplaint } = useComplaints(location, null)
-  const { user, loading: authLoading, login, logout } = useAuth()
+  const { location, error: locationError, requestPermission } = useLocation()
+  const { user, loading: authLoading, login, logout, userRole, refreshRole } = useAuthContext()
+  const { complaints, loading, error, submitComplaint, refresh, updateComplaint } = useComplaints(location, user)
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash === '#/admin' || hash === '#/admin/dashboard') {
+      setRoute('admin')
+    } else if (hash === '#/login') {
+      setRoute('login')
+    } else {
+      setRoute('main')
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash
+      if (hash === '#/admin' || hash === '#/admin/dashboard') {
+        setRoute('admin')
+      } else if (hash === '#/login') {
+        setRoute('login')
+      } else {
+        setRoute('main')
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  useEffect(() => {
+    if (route === 'admin' && user && !user.isDemoUser && !userRole) {
+      refreshRole?.()
+    }
+  }, [route, user, userRole])
 
   const handleLogin = useCallback(async () => {
     try { await login() } catch (err) { console.error('Login error:', err) }
@@ -37,6 +76,56 @@ function App() {
     await requestPermission()
   }, [requestPermission])
 
+  const handleNavigateHome = useCallback(() => {
+    window.location.hash = '#/'
+    setRoute('main')
+  }, [])
+
+  if (route === 'login') {
+    return <AdminLoginPage onNavigateHome={handleNavigateHome} />
+  }
+
+  if (route === 'admin') {
+    const isAdmin = user && (userRole === 'admin' || (user.isDemoUser && user.role === 'citizen'))
+    if (!user) {
+      window.location.hash = '#/login'
+      return null
+    }
+    if (!isAdmin) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m9.364-6.364A9 9 0 1112 3a9 9 0 016.364 14.636z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-500 mb-4">You do not have admin privileges.</p>
+            <button onClick={handleNavigateHome} className="text-primary-600 hover:underline">Back to Home</button>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <AdminLayout onNavigateHome={handleNavigateHome}>
+        <AdminDashboard
+          complaints={adminComplaints}
+          onSelectComplaint={setAdminSelectedComplaint}
+          onRefresh={() => {}}
+        />
+        {adminSelectedComplaint && (
+          <AdminComplaintDetail
+            complaint={adminSelectedComplaint}
+            onClose={() => setAdminSelectedComplaint(null)}
+            onUpdateStatus={handleStatusUpdate}
+          />
+        )}
+      </AdminLayout>
+    )
+  }
+
   return (
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 safe-area-insets flex flex-col">
       <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
@@ -46,7 +135,7 @@ function App() {
           <PublicMap 
             complaints={complaints}
             loading={loading}
-            center={location ? [location.latitude, location.longitude] : [28.6139, 77.2090]}
+            center={location ? [location.latitude, location.longitude] : [19.2813, 72.8568]}
             zoom={location ? 15 : 12}
             onComplaintClick={handleComplaintSelect}
             showUserLocation={true}
@@ -69,6 +158,7 @@ function App() {
             onSubmit={submitComplaint}
             userLocation={location}
             user={user}
+            authLoading={authLoading}
             loading={loading}
             prefill={prefillComplaint}
             onPrefillComplete={() => setPrefillComplaint(null)}
@@ -102,10 +192,17 @@ function App() {
 
       {/* Chat Widget */}
       <ChatWidget 
-        user={user} 
         position="bottom-right"
       />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   )
 }
 

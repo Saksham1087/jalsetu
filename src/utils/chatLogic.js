@@ -1,3 +1,10 @@
+import { MIRA_BHAYANDER } from '../lib/miraBhayander'
+
+function formatSchedule() {
+  const s = MIRA_BHAYANDER.defaultSchedule
+  return `${s.morning.start}–${s.morning.end} AM and ${s.evening.start}–${s.evening.end} PM`
+}
+
 export function getChatResponse(message) {
   if (!message || !message.trim()) {
     return {
@@ -13,7 +20,19 @@ export function getChatResponse(message) {
   let isProblem = false
   let suggestedSeverity = 'medium'
 
-  if (lowerMsg.includes('leak') || lowerMsg.includes('burst') || lowerMsg.includes('flood')) {
+  if (lowerMsg.includes('timing') || lowerMsg.includes('schedule') || lowerMsg.includes('supply time') || lowerMsg.includes('water time') || lowerMsg.includes('what time')) {
+    response = `**Mira Bhayander Water Supply Schedule:**\n\nDefault supply timings across all wards: **${formatSchedule()}** daily.\n\n⚠️ Timings may vary slightly by ward. Contact MBMC at **${MIRA_BHAYANDER.contacts.waterComplaint}** for your specific ward schedule.\n\nAre you facing a supply issue?`
+  } else if (lowerMsg.includes('contact') || lowerMsg.includes('mbmc') || lowerMsg.includes('phone') || lowerMsg.includes('number') || lowerMsg.includes('call')) {
+    response = `**MBMC Contact Information:**\n\n• Water Complaint Helpline: **${MIRA_BHAYANDER.contacts.waterComplaint}**\n• Emergency: **${MIRA_BHAYANDER.contacts.emergency}**\n• Website: ${MIRA_BHAYANDER.contacts.website}\n\nYou can also file a complaint directly through the JalSetu app — tap "Report" in the bottom nav.`
+  } else if (lowerMsg.includes('ghodbunder') || lowerMsg.includes('kashimira') || lowerMsg.includes('uttan') || lowerMsg.includes('mira road east') || lowerMsg.includes('bhayander east') || lowerMsg.includes('bhayander west')) {
+    const area = MIRA_BHAYANDER.knownIssueAreas.find(a => lowerMsg.includes(a.area.toLowerCase()))
+    if (area) {
+      response = `**Known issues in ${area.area}:**\n\n${area.issues.map(i => `• ${i}`).join('\n')}\n\nIf you're experiencing these issues, please file a complaint with details about your specific location. The more reports we get, the faster MBMC can address the problem.\n\nWould you like to submit a complaint?`
+      isProblem = true
+    } else {
+      response = `That area is within Mira Bhayander. You can check supply timings or file a complaint for any water issues you're facing there.`
+    }
+  } else if (lowerMsg.includes('leak') || lowerMsg.includes('burst') || lowerMsg.includes('flood')) {
     isProblem = true
     suggestedSeverity = 'critical_leak'
     response = `This sounds like a **critical leak**. Please file a complaint immediately with:
@@ -59,13 +78,16 @@ Submit a complaint right away.`
 
 This goes through a different process than supply complaints.`
   } else {
-    response = `I can help you with:
+    response = `I can help you with water issues in **Mira Bhayander**!
 
 🔴 **Critical Leak** - Burst pipes, flooding
 🟠 **Low Pressure** - Weak flow, can't fill tanks
 🟡 **No Supply** - Complete outage
 🔵 **Contamination** - Color, smell, taste issues
 🟣 **Billing** - Meter reading, charges
+
+**Supply Schedule:** ${formatSchedule()} daily
+**MBMC Helpline:** ${MIRA_BHAYANDER.contacts.waterComplaint}
 
 **To file a complaint:**
 1. Tap 'Report' in the bottom nav

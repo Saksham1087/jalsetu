@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
-import { getChatResponse } from '../utils/chatLogic'
+import { askGroq } from '../utils/groqChat'
 import { appConfig } from '../lib/config'
 
-export function ChatWidget({ user: _user, position = 'bottom-right' }) {
+export function ChatWidget({ position = 'bottom-right' }) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [conversationHistory, setConversationHistory] = useState([])
   const [error, setError] = useState(null)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -24,7 +25,7 @@ export function ChatWidget({ user: _user, position = 'bottom-right' }) {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        text: "Hi! I'm JalSetu's assistant. How can I help you with water issues today? You can ask about reporting leaks, low pressure, no water, contamination, or billing.",
+        text: "Hi! I'm JalSetu's assistant for **Mira Bhayander**. I can help with water supply timings (7–9 AM & PM daily), MBMC contacts, known issue areas, or filing a complaint. What's your water concern?",
         timestamp: new Date(),
       }])
     }
@@ -69,14 +70,21 @@ export function ChatWidget({ user: _user, position = 'bottom-right' }) {
     setError(null)
 
     try {
-      const response = await getChatResponse(currentInput)
+      const response = await askGroq(currentInput, conversationHistory)
 
-      setMessages(prev => [...prev, {
+      const assistantMsg = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
         text: response,
         timestamp: new Date(),
-      }])
+      }
+
+      setMessages(prev => [...prev, assistantMsg])
+      setConversationHistory(prev => [
+        ...prev,
+        { role: 'user', content: currentInput },
+        { role: 'assistant', content: response },
+      ])
     } catch (err) {
       console.error('Chat error:', err)
       setError(err.message || 'Failed to send message. Please try again.')
@@ -152,10 +160,10 @@ export function ChatWidget({ user: _user, position = 'bottom-right' }) {
             </button>
           </div>
 
-          {appConfig.isDemo && (
+          {!appConfig.hasGroq && (
             <div className="px-4 py-2 bg-amber-50 border-b border-amber-200">
               <p className="text-xs text-amber-700 text-center">
-                Demo mode — responses are simulated. Configure Gemini API for live AI chat.
+                Set VITE_GROQ_API_KEY in your .env file to enable live AI chat.
               </p>
             </div>
           )}

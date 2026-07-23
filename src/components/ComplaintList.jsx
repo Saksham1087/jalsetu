@@ -1,11 +1,13 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ComplaintCard } from './ComplaintCard'
 import { FilterBar } from './FilterBar'
+import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 
 export function ComplaintList({ complaints, loading, error, onRefresh, userLocation }) {
   const [filter, setFilter] = useState({
     type: '',
     status: '',
+    ward: '',
     search: '',
     sortBy: 'distance',
   })
@@ -19,11 +21,12 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
     let filtered = complaintsArray.filter(c => {
       if (filter.type && c.type !== filter.type) return false
       if (filter.status && c.status !== filter.status) return false
+      if (filter.ward && c.ward !== filter.ward) return false
       if (filter.search) {
         const search = filter.search.toLowerCase()
-        return c.description.toLowerCase().includes(search) ||
-               c.address?.toLowerCase().includes(search) ||
-               c.ward?.toLowerCase().includes(search)
+        return (c.description || '').toLowerCase().includes(search) ||
+               (c.address || '').toLowerCase().includes(search) ||
+               (c.ward || '').toLowerCase().includes(search)
       }
       return true
     })
@@ -71,6 +74,11 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
     { value: 'rejected', label: 'Rejected' },
   ]
 
+  const wardOptions = [
+    { value: '', label: 'All Wards' },
+    ...MIRA_BHAYANDER.wards.map(w => ({ value: w.name, label: w.name })),
+  ]
+
   if (loading && complaints.length === 0) {
     return (
       <div className="min-h-screen min-h-[100dvh] bg-gray-50 flex items-center justify-center pb-24 safe-area-inset-bottom">
@@ -84,12 +92,13 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 pb-24 safe-area-inset-bottom">
-      <FilterBar
-        filter={filter}
-        onFilterChange={setFilter}
-        complaintTypes={complaintTypes}
-        statusOptions={statusOptions}
-      />
+<FilterBar
+          filter={filter}
+          onFilterChange={setFilter}
+          complaintTypes={complaintTypes}
+          statusOptions={statusOptions}
+          wardOptions={wardOptions}
+        />
 
       <div className="px-4 pb-4">
         {error && (

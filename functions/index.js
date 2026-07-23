@@ -1,14 +1,9 @@
-const { onCall } = require('firebase-functions/v2/https')
-const { initializeApp } = require('firebase-admin/app')
-const { getFirestore } = require('firebase-admin/firestore')
 
-initializeApp()
-const db = getFirestore()
 
 // Callable function for AI chat
 exports.chatWithAI = onCall(async (request) => {
-  const { message, context } = request.data
-  const userId = request.auth?.uid
+  const { message } = request?.data || {}
+  const userId = request.auth?.uid || request.data?.userId
 
   if (!message) {
     throw new Error('Message is required')

@@ -1,4 +1,4 @@
-export function FilterBar({ filter, onFilterChange, complaintTypes, statusOptions }) {
+export function FilterBar({ filter, onFilterChange, complaintTypes, statusOptions, wardOptions }) {
   return (
     <div className="sticky top-0 z-40 bg-white border-b border-gray-200 safe-area-inset-top">
       <div className="px-4 py-3 space-y-3">
@@ -51,6 +51,26 @@ export function FilterBar({ filter, onFilterChange, complaintTypes, statusOption
             </button>
           ))}
         </div>
+
+        {wardOptions && wardOptions.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {wardOptions.map(ward => (
+              <button
+                key={ward.value}
+                type="button"
+                onClick={() => onFilterChange(prev => ({ ...prev, ward: prev.ward === ward.value ? '' : ward.value }))}
+                className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium touch-target transition-colors ${
+                  filter.ward === ward.value
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                aria-pressed={filter.ward === ward.value}
+              >
+                {ward.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-2 pt-1">
           <label htmlFor="sort-by" className="text-xs text-gray-500 font-medium">Sort:</label>

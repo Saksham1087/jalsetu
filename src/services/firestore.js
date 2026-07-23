@@ -23,15 +23,16 @@ export function createComplaintData(user, input) {
     description: input.description,
     severity: input.severity || 'medium',
     photoURL: input.photoURL || null,
-    lat: input.lat,
-    lng: input.lng,
+    lat: input.latitude,
+    lng: input.longitude,
     address: input.address || null,
     ward: input.ward || null,
     landmark: input.landmark || null,
+    mobile: input.mobile || null,
     createdAt: serverTimestamp(),
     status: 'submitted',
     timeline: [
-      { status: 'submitted', timestamp: serverTimestamp(), note: 'Complaint submitted' }
+      { status: 'submitted', timestamp: new Date(), note: 'Complaint submitted' }
     ]
   }
 }

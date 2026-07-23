@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuthContext } from '../contexts/AuthContext'
 
 export function AuthModal({ isOpen, onClose }) {
-  const { login, register } = useAuth()
+  const { login } = useAuthContext()
   const [mode, setMode] = useState('login')
   const [formData, setFormData] = useState({
     name: '',
@@ -36,16 +36,7 @@ export function AuthModal({ isOpen, onClose }) {
 
     setSubmitting(true)
     try {
-      if (mode === 'login') {
-        await login({ email: formData.email, password: formData.password })
-      } else {
-        await register({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-        })
-      }
+      await login({ email: formData.email, password: formData.password })
       onClose()
     } catch (err) {
       setErrors({ submit: err.message || 'Authentication failed' })

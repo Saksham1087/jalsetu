@@ -7,13 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server.js"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
     "canvas": "^3.2.3",
+    "compression": "^1.8.1",
+    "dotenv": "^17.4.2",
     "exif-js": "^2.3.0",
+    "express": "^5.2.1",
     "firebase": "^12.16.0",
+    "helmet": "^8.3.0",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "react": "^19.2.7",
