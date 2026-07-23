@@ -16,26 +16,46 @@ const TYPE_OPTIONS = [
 const MAX_PHOTO_SIZE = 1200
 const JPEG_QUALITY = 0.7
 
-function resizeImage(file) {
+async function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      let { width, height } = img
-      if (width > MAX_PHOTO_SIZE || height > MAX_PHOTO_SIZE) {
-        const ratio = Math.min(MAX_PHOTO_SIZE / width, MAX_PHOTO_SIZE / height)
-        width = Math.round(width * ratio)
-        height = Math.round(height * ratio)
-      }
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
-      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
-    }
-    img.onerror = reject
-    img.src = URL.createObjectURL(file)
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsDataURL(file)
   })
+}
+
+async function resizeImage(file) {
+  const blobUrl = URL.createObjectURL(file)
+  try {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        let { width, height } = img
+        if (width > MAX_PHOTO_SIZE || height > MAX_PHOTO_SIZE) {
+          const ratio = Math.min(MAX_PHOTO_SIZE / width, MAX_PHOTO_SIZE / height)
+          width = Math.round(width * ratio)
+          height = Math.round(height * ratio)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject(new Error('Canvas not supported'))
+        try {
+          ctx.drawImage(img, 0, 0, width, height)
+          resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY))
+        } catch (e) {
+          reject(new Error('Failed to process image: ' + e.message))
+        }
+      }
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = blobUrl
+    })
+    return dataUrl
+  } finally {
+    URL.revokeObjectURL(blobUrl)
+  }
 }
 
 export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loading, prefill, onPrefillComplete }) {
@@ -213,6 +233,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
     if (!file) return
 
     setUploading(true)
+    setErrors(prev => { const r = { ...prev }; delete r.photo; return r })
     try {
       if (appConfig.hasCloudinary && window.cloudinary) {
         const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
@@ -230,7 +251,9 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
             (error, result) => {
               setUploading(false)
               if (error) {
-                setErrors(prev => ({ ...prev, photo: error.message || 'Upload failed' }))
+                if (error.message !== 'User cancelled') {
+                  setErrors(prev => ({ ...prev, photo: 'Upload cancelled or failed' }))
+                }
                 return
               }
               if (result?.info?.secure_url) {
@@ -248,10 +271,15 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         return
       }
 
-      const dataUrl = await resizeImage(file)
+      let dataUrl
+      try {
+        dataUrl = await resizeImage(file)
+      } catch {
+        dataUrl = await fileToDataUrl(file)
+      }
       setFormData(prev => ({ ...prev, images: [dataUrl] }))
     } catch (err) {
-      setErrors(prev => ({ ...prev, photo: err.message || 'Upload failed' }))
+      setErrors(prev => ({ ...prev, photo: 'Could not upload photo. Please try a different image or skip this step.' }))
     } finally {
       setUploading(false)
     }
@@ -373,7 +401,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Photo (Max 10MB)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Photo <span className="text-gray-400 font-normal">(Optional, Max 10MB)</span></label>
             <div className="space-y-3">
               {formData.images.length > 0 ? (
                 <div className="relative aspect-square max-w-xs rounded-lg overflow-hidden border border-gray-200">
@@ -409,7 +437,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                   <span className="text-xs text-gray-400">JPG, PNG up to 10MB</span>
                 </button>
               )}
-              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="hidden" onChange={handlePhotoUpload} />
               {uploading && (
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
