@@ -17,7 +17,7 @@ export function ComplaintCard({ complaint, userLocation, index }) {
     leakage: '💧',
     contamination: '⚠️',
     low_pressure: '📉',
-    no_water: '🚫',
+    no_supply: '🚫',
     billing: '💰',
     other: '📝',
   }

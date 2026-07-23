@@ -8,13 +8,13 @@ import L from 'leaflet'
 import { subscribeToAllComplaints } from '../services/firestore'
 import { appConfig } from '../lib/config'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
+import { getWardById } from '../lib/miraBhayander'
 import '../styles/map.css'
 
 const typeColors = {
   leakage: '#dc2626',
   critical_leak: '#dc2626',
   low_pressure: '#f97316',
-  no_water: '#f59e0b',
   no_supply: '#f59e0b',
   contamination: '#0ea5e9',
   billing: '#8b5cf6',
@@ -25,11 +25,18 @@ const typeLabels = {
   leakage: 'Critical Leak',
   critical_leak: 'Critical Leak',
   low_pressure: 'Low Pressure',
-  no_water: 'No Supply',
   no_supply: 'No Supply',
   contamination: 'Contamination',
   billing: 'Billing Issue',
   other: 'Other',
+}
+
+const filterKeys = ['leakage', 'low_pressure', 'no_supply', 'contamination', 'billing', 'other']
+
+function normalizeType(type) {
+  if (type === 'critical_leak') return 'leakage'
+  if (type === 'leakage' || type === 'low_pressure' || type === 'no_supply' || type === 'contamination' || type === 'billing' || type === 'other') return type
+  return 'other'
 }
 
 function createMarkerIcon(color) {
@@ -93,8 +100,16 @@ export function PublicMap({
   const [fbComplaints, setFbComplaints] = useState([])
   const [fbError, setFbError] = useState(null)
   const [fbLoading, setFbLoading] = useState(appConfig.hasFirebase)
-  const [filterType, setFilterType] = useState('all')
+  const [filterType, setFilterType] = useState([])
+  const [filterWard, setFilterWard] = useState('')
   const mapRef = useRef(null)
+  const mapContainerRef = useRef(null)
+
+  useEffect(() => {
+    if (mapContainerRef.current && mapRef.current) {
+      mapRef.current.invalidateSize()
+    }
+  }, [])
 
   useEffect(() => {
     if (!appConfig.hasFirebase) return
@@ -112,9 +127,15 @@ export function PublicMap({
 
   const filteredComplaints = useMemo(() => {
     if (!rawComplaints || !Array.isArray(rawComplaints)) return []
-    if (filterType === 'all') return rawComplaints
-    return rawComplaints.filter(c => (c.type ?? c.severity ?? 'other') === filterType)
-  }, [rawComplaints, filterType])
+    let filtered = rawComplaints
+    if (filterType.length > 0) {
+      filtered = filtered.filter(c => filterType.includes(normalizeType(c.type ?? c.severity)))
+    }
+    if (filterWard) {
+      filtered = filtered.filter(c => c.ward === filterWard)
+    }
+    return filtered
+  }, [rawComplaints, filterType, filterWard])
 
   const bounds = useMemo(() => {
     if (!filteredComplaints || filteredComplaints.length === 0) return null
@@ -138,20 +159,35 @@ export function PublicMap({
     if (onComplaintClick) onComplaintClick(complaint)
   }, [onComplaintClick])
 
+  const handleFilterChange = useCallback((key) => {
+    if (key === '__all__') {
+      setFilterType([])
+      return
+    }
+    setFilterType(prev => {
+      if (prev.length === 0) {
+        return [key]
+      }
+      if (prev.includes(key)) {
+        return prev.filter(t => t !== key)
+      }
+      return [...prev, key]
+    })
+  }, [])
+
   const StatsBar = ({ complaints }) => {
     const arr = Array.isArray(complaints) ? complaints : []
     return (
-      <div className="absolute top-4 left-4 right-4 z-20 flex justify-center pointer-events-none">
+      <div className="absolute top-4 left-4 right-4 z-[1000] flex justify-center pointer-events-none">
         <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl px-4 py-2 border border-gray-200 flex items-center gap-4 flex-wrap pointer-events-auto">
-          {Object.entries(typeLabels).map(([key, label]) => {
-            if (key === 'other' || key === 'critical_leak') return null
+          {filterKeys.map((key) => {
             const color = typeColors[key]
-            const count = arr.filter(c => (c.type ?? c.severity) === key).length
+            const count = arr.filter(c => normalizeType(c.type ?? c.severity) === key).length
             if (count === 0) return null
             return (
               <div key={key} className="flex items-center gap-1.5 text-sm">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-gray-700">{count} {label}</span>
+                <span className="text-gray-700">{count} {typeLabels[key]}</span>
               </div>
             )
           })}
@@ -160,29 +196,26 @@ export function PublicMap({
     )
   }
 
-  const SeverityLegend = ({ complaints, filterType, onFilterChange }) => {
-    const arr = Array.isArray(complaints) ? complaints : []
-    const seen = new Set()
+  const SeverityLegend = ({ rawComplaints, filterType, onFilterChange, filterWard, onWardChange }) => {
+    const allTypeSelected = filterType.length === 0
     return (
-      <div className="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-3 border border-gray-200">
+      <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-3 border border-gray-200 max-h-[70vh] overflow-y-auto">
         <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
           <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-5.447A1 1 0 013 12.383V5.25A2.56 2.56 0 015.593 3H10.25a2.56 2.56 0 012.56 2.25v6.133a1 1 0 01-1.59.814L9 20z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           Type
         </div>
         <div className="space-y-1.5">
-          {Object.entries(typeColors).map(([key, color]) => {
-            if (seen.has(key)) return null
-            if (key === 'critical_leak') return null
-            if (key === 'no_supply') return null
-            seen.add(key)
+          {filterKeys.map((key) => {
+            const color = typeColors[key]
             const label = typeLabels[key]
-            const count = arr.filter(c => (c.type ?? c.severity) === key).length
+            const count = rawComplaints.filter(c => normalizeType(c.type ?? c.severity) === key).length
+            const isChecked = allTypeSelected || filterType.includes(key)
             return (
               <label key={key} className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="checkbox"
-                  checked={filterType === 'all' || filterType === key}
-                  onChange={() => onFilterChange(filterType === key ? 'all' : key)}
+                  checked={isChecked}
+                  onChange={() => onFilterChange(key)}
                   className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <span className="w-3 h-3 rounded-full border-2 flex-shrink-0" style={{ borderColor: color, backgroundColor: color }} />
@@ -194,13 +227,35 @@ export function PublicMap({
           <label className="flex items-center gap-2 cursor-pointer border-t border-gray-200 pt-1.5 mt-1">
             <input
               type="checkbox"
-              checked={filterType === 'all'}
-              onChange={() => onFilterChange('all')}
+              checked={allTypeSelected}
+              onChange={() => onFilterChange('__all__')}
               className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
             <span className="w-3 h-3 rounded-full border-2 flex-shrink-0 border-gray-300" />
-            <span className="text-sm text-gray-700 font-medium">All ({arr.length})</span>
+            <span className="text-sm text-gray-700 font-medium">All ({rawComplaints.length})</span>
           </label>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-gray-200">
+          <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Ward
+          </div>
+          <select
+            value={filterWard}
+            onChange={(e) => onWardChange(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          >
+            <option value="">All Wards</option>
+            {MIRA_BHAYANDER.wards.map((ward) => {
+              const count = rawComplaints.filter(c => c.ward === ward.name).length
+              return (
+                <option key={ward.id} value={ward.name}>
+                  Ward {ward.id} — {ward.area}{count > 0 ? ` (${count})` : ''}
+                </option>
+              )
+            })}
+          </select>
         </div>
       </div>
     )
@@ -233,7 +288,7 @@ export function PublicMap({
   }
 
 return (
-    <div className="relative h-screen w-full">
+    <div ref={mapContainerRef} className="relative flex-1 min-h-0 w-full">
     <MapContainer
         ref={mapRef}
         center={center}
@@ -242,8 +297,11 @@ return (
         attributionControl={false}
         maxBounds={MIRA_BHAYANDER.bounds}
         maxBoundsViscosity={1.0}
-        className="h-full w-full"
-        style={{ height: '100%', width: '100%' }}
+        className="absolute inset-0"
+        whenCreated={(map) => {
+          mapRef.current = map
+          setTimeout(() => map.invalidateSize(), 0)
+        }}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -268,7 +326,7 @@ return (
           onComplaintClick={handleMarkerClick}
         />
 
-        <div className="leaflet-control-zoom leaflet-bar leaflet-control leaflet-control-custom absolute top-4 right-4 z-20">
+        <div className="leaflet-control-zoom leaflet-bar leaflet-control leaflet-control-custom absolute top-4 right-4 z-[1000]">
           <button
             onClick={() => mapRef.current?.zoomIn?.()}
             className="leaflet-control-zoom-in bg-white hover:bg-gray-50 border-b border-gray-200 w-10 h-10 flex items-center justify-center text-gray-700"
@@ -294,7 +352,7 @@ return (
                 mapRef.current.locate({ setView: true, maxZoom: 16 })
               }
             }}
-            className="absolute top-16 right-4 z-20 w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            className="absolute top-16 right-4 z-[1000] w-10 h-10 bg-white rounded-lg shadow-lg flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors"
             aria-label="Locate me"
           >
             <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,7 +363,7 @@ return (
         )}
 
         <StatsBar complaints={filteredComplaints} />
-        <SeverityLegend complaints={filteredComplaints} filterType={filterType} onFilterChange={setFilterType} />
+        <SeverityLegend rawComplaints={rawComplaints} filterType={filterType} onFilterChange={handleFilterChange} filterWard={filterWard} onWardChange={setFilterWard} />
       </MapContainer>
     </div>
   )

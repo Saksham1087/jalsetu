@@ -68,4 +68,16 @@ The system SHALL provide an admin-specific layout with sidebar navigation and he
 
 #### Scenario: Admin layout renders
 - **WHEN** admin is logged in and on any `/admin/*` route
-- **THEN** sidebar shows Dashboard, Complaints, Workers (placeholder), Wards (placeholder), Settings (placeholder) links
+- **THEN** sidebar shows Dashboard, Complaints, Wards links
+
+#### Scenario: Dashboard tab shows stats
+- **WHEN** admin clicks Dashboard
+- **THEN** stats cards (Total, Pending, In Progress, Resolved) and complaint queue with status/ward filters are displayed
+
+#### Scenario: Complaints tab shows searchable list
+- **WHEN** admin clicks Complaints
+- **THEN** full complaint list with text search, status dropdown, ward dropdown, and clickable rows is displayed
+
+#### Scenario: Wards tab shows ward details
+- **WHEN** admin clicks Wards
+- **THEN** list of 24 wards with complaint counts, MBMC contacts, and known issues per area is displayed

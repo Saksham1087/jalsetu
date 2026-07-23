@@ -1,6 +1,6 @@
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
-import { auth, db } from '../lib/firebase'
+import { auth, db, googleProvider, signInWithPopup, signOut } from '../lib/firebase'
 import { appConfig } from '../lib/config'
 
 const STORAGE_KEY = 'jalsetu_users'
@@ -45,9 +45,34 @@ export async function getUserRole(uid) {
   return 'citizen'
 }
 
+export async function setUserRole(uid, role = 'citizen') {
+  if (!appConfig.hasFirebase || !db) return
+  const userRef = doc(db, 'users', uid)
+  const snap = await getDoc(userRef)
+  if (snap.exists()) {
+    await setDoc(userRef, { role, updatedAt: serverTimestamp() }, { merge: true })
+  } else {
+    await setDoc(userRef, { uid, email: '', name: 'Unknown', role, createdAt: serverTimestamp() })
+  }
+}
+
 export async function checkAdminRole(uid) {
   const role = await getUserRole(uid)
   return role === 'admin'
+}
+
+export async function loginWithGoogleAdmin() {
+  if (!appConfig.hasFirebase || !auth || !googleProvider) {
+    throw new Error('Firebase not configured')
+  }
+  const result = await signInWithPopup(auth, googleProvider)
+  const user = result.user
+  if (!user.email || user.email.toLowerCase() !== 'raisakshamclg@gmail.com') {
+    await signOut(auth)
+    throw new Error('Access denied. Only the admin email can access this portal.')
+  }
+  await setUserRole(user.uid, 'admin')
+  return user
 }
 
 export async function registerWithEmail(name, email, password) {

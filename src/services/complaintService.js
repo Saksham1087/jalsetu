@@ -155,7 +155,7 @@ export const complaintService = {
       },
       {
         id: generateId(),
-        type: 'no_water',
+        type: 'no_supply',
         description: 'No water supply for 24 hours in entire block. Emergency situation for residents.',
         latitude: 19.2950,
         longitude: 72.8750,

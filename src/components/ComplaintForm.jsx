@@ -294,7 +294,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         mobile: formData.mobile || null,
       }
 
-      const result = await onSubmit(complaintData)
+      await onSubmit(complaintData)
 
       setFormData({
         type: '',
@@ -310,7 +310,6 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
       setUserMarker(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
 
-      if (onSubmit) onSubmit(result)
     } catch (err) {
       setErrors({ submit: err.message || 'Failed to submit complaint' })
     } finally {

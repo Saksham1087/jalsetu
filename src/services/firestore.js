@@ -8,7 +8,8 @@ import {
   orderBy, 
   onSnapshot, 
   getDocs,
-  serverTimestamp 
+  serverTimestamp,
+  arrayUnion 
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 
@@ -16,15 +17,21 @@ const COLLECTION = 'complaints'
 const STATUSES = ['submitted', 'acknowledged', 'in_progress', 'resolved', 'rejected']
 
 export function createComplaintData(user, input) {
+  const lat = input.latitude ?? input.lat
+  const lng = input.longitude ?? input.lng
+  if (lat == null || lng == null || isNaN(Number(lat)) || isNaN(Number(lng))) {
+    throw new Error('Valid latitude and longitude are required')
+  }
   return {
     userId: user.uid,
     userName: user.displayName || 'Anonymous',
     userPhotoURL: user.photoURL || null,
+    type: input.type || 'other',
     description: input.description,
     severity: input.severity || 'medium',
     photoURL: input.photoURL || null,
-    lat: input.latitude,
-    lng: input.longitude,
+    lat: Number(lat),
+    lng: Number(lng),
     address: input.address || null,
     ward: input.ward || null,
     landmark: input.landmark || null,
@@ -49,9 +56,12 @@ export async function updateComplaintStatus(complaintId, status, note = '') {
   if (!STATUSES.includes(status)) throw new Error('Invalid status')
   
   const ref = doc(db, COLLECTION, complaintId)
+  const entry = { status, timestamp: new Date() }
+  if (note) entry.note = note
   await updateDoc(ref, {
     status,
     updatedAt: serverTimestamp(),
+    timeline: arrayUnion(entry),
   })
 }
 

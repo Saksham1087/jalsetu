@@ -60,7 +60,7 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
     { value: 'leakage', label: 'Leakage' },
     { value: 'contamination', label: 'Contamination' },
     { value: 'low_pressure', label: 'Low Pressure' },
-    { value: 'no_water', label: 'No Water' },
+    { value: 'no_supply', label: 'No Supply' },
     { value: 'billing', label: 'Billing' },
     { value: 'other', label: 'Other' },
   ]
@@ -76,7 +76,7 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
 
   const wardOptions = [
     { value: '', label: 'All Wards' },
-    ...MIRA_BHAYANDER.wards.map(w => ({ value: w.name, label: w.name })),
+    ...MIRA_BHAYANDER.wards.map(w => ({ value: w.name, label: `${w.name} — ${w.area}` })),
   ]
 
   if (loading && complaints.length === 0) {

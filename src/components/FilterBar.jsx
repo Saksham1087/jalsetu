@@ -53,22 +53,18 @@ export function FilterBar({ filter, onFilterChange, complaintTypes, statusOption
         </div>
 
         {wardOptions && wardOptions.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {wardOptions.map(ward => (
-              <button
-                key={ward.value}
-                type="button"
-                onClick={() => onFilterChange(prev => ({ ...prev, ward: prev.ward === ward.value ? '' : ward.value }))}
-                className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium touch-target transition-colors ${
-                  filter.ward === ward.value
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                aria-pressed={filter.ward === ward.value}
-              >
-                {ward.label}
-              </button>
-            ))}
+          <div>
+            <label htmlFor="ward-filter" className="block text-xs text-gray-500 font-medium mb-1">Ward / Area</label>
+            <select
+              id="ward-filter"
+              value={filter.ward}
+              onChange={(e) => onFilterChange(prev => ({ ...prev, ward: e.target.value }))}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E')] bg-right bg-no-repeat pr-8"
+            >
+              {wardOptions.map(ward => (
+                <option key={ward.value} value={ward.value}>{ward.label}</option>
+              ))}
+            </select>
           </div>
         )}
 

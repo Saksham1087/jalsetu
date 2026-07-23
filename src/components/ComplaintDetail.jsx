@@ -14,7 +14,7 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
     leakage: '💧',
     contamination: '⚠️',
     low_pressure: '📉',
-    no_water: '🚫',
+    no_supply: '🚫',
     billing: '💰',
     other: '📝',
   }

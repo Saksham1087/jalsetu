@@ -14,8 +14,8 @@ export function ChatWidget({ position = 'bottom-right' }) {
   const widgetRef = useRef(null)
 
   const positionClasses = {
-    'bottom-right': 'bottom-24 right-4',
-    'bottom-left': 'bottom-24 left-4',
+    'bottom-right': 'bottom-20 right-4',
+    'bottom-left': 'bottom-20 left-4',
     'top-right': 'top-20 right-4',
     'top-left': 'top-20 left-4',
   }
@@ -112,7 +112,7 @@ export function ChatWidget({ position = 'bottom-right' }) {
   const positionClass = positionClasses[position] || positionClasses['bottom-right']
 
   return (
-    <div ref={widgetRef} className={`fixed z-50 ${positionClass} transition-all duration-300`}>
+    <div ref={widgetRef} className={`fixed z-[1100] ${positionClass} transition-all duration-300`}>
       <button
         onClick={toggleChat}
         className={`touch-target w-14 h-14 rounded-full bg-primary-600 text-white shadow-xl flex items-center justify-center transition-all duration-300 hover:bg-primary-700 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${isOpen ? 'rotate-45 bg-red-500' : ''}`}

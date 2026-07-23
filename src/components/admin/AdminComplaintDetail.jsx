@@ -8,10 +8,20 @@ const STATUS_OPTIONS = [
   { value: 'rejected', label: 'Rejected', color: 'bg-red-500' },
 ]
 
+const NEXT_STATUS = {
+  submitted: 'acknowledged',
+  acknowledged: 'in_progress',
+  in_progress: 'resolved',
+  resolved: 'resolved',
+  rejected: 'rejected',
+}
+
 export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
-  const [selectedStatus, setSelectedStatus] = useState(complaint?.status || '')
+  const defaultStatus = NEXT_STATUS[complaint?.status] || complaint?.status || ''
+  const [selectedStatus, setSelectedStatus] = useState(defaultStatus)
   const [note, setNote] = useState('')
   const [updating, setUpdating] = useState(false)
+  const [updateError, setUpdateError] = useState(null)
 
   if (!complaint) return null
 
@@ -24,7 +34,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
       await onUpdateStatus(complaint.id, selectedStatus, note)
       onClose()
     } catch (err) {
-      console.error('Status update failed:', err)
+      setUpdateError(err.message || 'Failed to update status')
     } finally {
       setUpdating(false)
     }
@@ -135,7 +145,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
               {STATUS_OPTIONS.filter(s => s.value !== complaint.status).map(s => (
                 <button
                   key={s.value}
-                  onClick={() => setSelectedStatus(s.value)}
+                  onClick={() => { setSelectedStatus(s.value); setUpdateError(null) }}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     selectedStatus === s.value
                       ? `${s.color.replace('bg-', 'bg-').replace('500', '100')} ${s.color.replace('bg-', 'text-').replace('500', '800')} border-2 border-current`
@@ -148,11 +158,14 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
             </div>
             <textarea
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => { setNote(e.target.value); setUpdateError(null) }}
               placeholder="Add a note (optional)..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3"
               rows={2}
             />
+            {updateError && (
+              <p className="text-red-600 text-sm mb-3">{updateError}</p>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleStatusUpdate}

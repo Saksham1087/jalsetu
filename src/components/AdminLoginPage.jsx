@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuthContext } from '../contexts/AuthContext'
+import { loginWithGoogleAdmin } from '../services/authService'
 import { appConfig } from '../lib/config'
 
 export function AdminLoginPage({ onNavigateHome }) {
@@ -7,7 +8,8 @@ export function AdminLoginPage({ onNavigateHome }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const { loginWithEmail, user, userRole, login, loading: authLoading } = useAuthContext()
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const { loginWithEmail, user, userRole, loading: authLoading, refreshRole } = useAuthContext()
 
   if (authLoading) {
     return (
@@ -30,7 +32,7 @@ export function AdminLoginPage({ onNavigateHome }) {
       if (appConfig.hasFirebase) {
         await loginWithEmail(email, password)
       } else {
-        if (email === 'admin@jalsetu.app' && password === 'admin123') {
+        if (email === 'raisakshamclg@gmail.com' && password === 'admin123') {
           window.location.hash = '#/admin'
           return
         }
@@ -40,6 +42,27 @@ export function AdminLoginPage({ onNavigateHome }) {
       setError(err.message || 'Login failed')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setError(null)
+    setGoogleLoading(true)
+    try {
+      if (!appConfig.hasFirebase) {
+        if (user) {
+          window.location.hash = '#/admin'
+        }
+        return
+      }
+      await loginWithGoogleAdmin()
+      if (refreshRole) await refreshRole()
+      window.location.hash = '#/admin'
+    } catch (err) {
+      setError(err.message || 'Google sign-in failed')
+      setGoogleLoading(false)
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -99,8 +122,9 @@ export function AdminLoginPage({ onNavigateHome }) {
 
           <div className="mt-6 pt-6 border-t border-gray-200">
             <button
-              onClick={login}
-              className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
+              className="w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>

@@ -51,6 +51,15 @@
 - [x] 5.6 Add admin status update function to `src/services/firestore.js`
 - [x] 5.7 Add status filter and ward filter to admin complaint queue
 
+## 5B. Admin Panel Navigation Cleanup
+
+- [x] 5B.1 Remove Workers and Settings placeholder tabs from AdminLayout sidebar
+- [x] 5B.2 Create `AdminComplaints.jsx` — full complaint list with search, status filter, ward filter
+- [x] 5B.3 Create `AdminWards.jsx` — ward list with complaint stats, contacts, known issues
+- [x] 5B.4 Update `AdminLayout.jsx` to render different components per tab (Dashboard/Complaints/Wards)
+- [x] 5B.5 Update `App.jsx` to pass props directly to AdminLayout
+- [x] 5B.6 Standardize complaint type `no_water` → `no_supply` across all components (ComplaintList, ComplaintDetail, ComplaintCard, PublicMap, complaintService demo data)
+
 ## 6. Chatbot Enhancement
 
 - [x] 6.1 Update `src/utils/chatLogic.js` with Mira Bhayander system prompt (supply schedule, contacts, known issues)
@@ -74,5 +83,5 @@
 - [x] 8.1 Run `npm run lint` and fix any Oxlint errors
 - [x] 8.2 Run `npm run build` and verify production build succeeds
 - [ ] 8.3 Test demo mode (no Firebase) — map loads on Mira Bhayander, chatbot works, form shows wards
-- [ ] 8.4 Test Firebase mode — admin login works, dashboard shows complaints, status updates work
+- [x] 8.4 Test Firebase mode — admin login works, dashboard shows complaints, status updates work
 - [ ] 8.5 Test Node.js server — `npm run start` serves app on configured PORT

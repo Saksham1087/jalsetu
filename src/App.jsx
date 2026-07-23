@@ -8,23 +8,23 @@ import { ComplaintDetail } from './components/ComplaintDetail'
 import { ChatWidget } from './components/ChatWidget'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { AdminLayout } from './components/admin/AdminLayout'
-import { AdminDashboard } from './components/admin/AdminDashboard'
-import { AdminComplaintDetail } from './components/admin/AdminComplaintDetail'
 import { useComplaints } from './hooks/useComplaints'
 import { useLocation } from './hooks/useLocation'
 import { AuthProvider, useAuthContext } from './contexts/AuthContext'
+import { subscribeToAllComplaints, updateComplaintStatus } from './services/firestore'
+import { appConfig } from './lib/config'
+import { complaintService } from './services/complaintService'
 
 function AppInner() {
   const [activeTab, setActiveTab] = useState('map')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [prefillComplaint, setPrefillComplaint] = useState(null)
   const [route, setRoute] = useState('main')
-  const [adminComplaints] = useState([])
-  const [adminSelectedComplaint, setAdminSelectedComplaint] = useState(null)
+  const [adminComplaints, setAdminComplaints] = useState([])
   
   const { location, error: locationError, requestPermission } = useLocation()
   const { user, loading: authLoading, login, logout, userRole, refreshRole } = useAuthContext()
-  const { complaints, loading, error, submitComplaint, refresh, updateComplaint } = useComplaints(location, user)
+  const { complaints, loading, error, submitComplaint, refresh } = useComplaints(location, user)
 
   useEffect(() => {
     const hash = window.location.hash
@@ -58,6 +58,24 @@ function AppInner() {
     }
   }, [route, user, userRole])
 
+  useEffect(() => {
+    const isAdminUser = user && (userRole === 'admin' || (user.isDemoUser && user.role === 'citizen'))
+    if (route !== 'admin' || !user || !isAdminUser) return
+
+    if (!appConfig.hasFirebase) {
+      complaintService.seedDemoData()
+      setAdminComplaints(complaintService.getAll())
+      return
+    }
+
+    const unsubscribe = subscribeToAllComplaints(
+      (data) => setAdminComplaints(data),
+      (err) => console.error('Admin subscription error:', err)
+    )
+
+    return () => unsubscribe()
+  }, [route, user, userRole])
+
   const handleLogin = useCallback(async () => {
     try { await login() } catch (err) { console.error('Login error:', err) }
   }, [login])
@@ -68,9 +86,18 @@ function AppInner() {
     setSelectedComplaint(complaint)
   }, [])
 
-  const handleStatusUpdate = useCallback(async (id, status) => {
-    try { await updateComplaint(id, { status }) } catch (err) { alert(err.message) }
-  }, [updateComplaint])
+  const handleStatusUpdate = useCallback(async (id, status, note) => {
+    if (!appConfig.hasFirebase) {
+      try {
+        complaintService.update(id, { status, ...(note && { timeline: [{ status, timestamp: new Date(), note }] }) })
+        setAdminComplaints(complaintService.getAll())
+      } catch (err) { alert(err.message) }
+      return
+    }
+    try {
+      await updateComplaintStatus(id, status, note)
+    } catch (err) { alert(err.message) }
+  }, [])
 
   const handleLocationPermission = useCallback(async () => {
     await requestPermission()
@@ -109,20 +136,11 @@ function AppInner() {
     }
 
     return (
-      <AdminLayout onNavigateHome={handleNavigateHome}>
-        <AdminDashboard
-          complaints={adminComplaints}
-          onSelectComplaint={setAdminSelectedComplaint}
-          onRefresh={() => {}}
-        />
-        {adminSelectedComplaint && (
-          <AdminComplaintDetail
-            complaint={adminSelectedComplaint}
-            onClose={() => setAdminSelectedComplaint(null)}
-            onUpdateStatus={handleStatusUpdate}
-          />
-        )}
-      </AdminLayout>
+      <AdminLayout
+        complaints={adminComplaints}
+        onUpdateStatus={handleStatusUpdate}
+        onNavigateHome={handleNavigateHome}
+      />
     )
   }
 
@@ -130,7 +148,7 @@ function AppInner() {
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 safe-area-insets flex flex-col">
       <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
       
-      <main className="flex-1 min-h-0 overflow-hidden relative">
+      <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col pb-16">
         {activeTab === 'map' && (
           <PublicMap 
             complaints={complaints}
