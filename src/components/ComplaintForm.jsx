@@ -248,14 +248,29 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
               maxFileSize: 10 * 1024 * 1024, resourceType: 'image', multiple: false,
               showAdvancedOptions: false, clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'], theme: 'white',
             },
-            (error, result) => {
-              setUploading(false)
+            async (error, result) => {
               if (error) {
-                if (error.message !== 'User cancelled') {
-                  setErrors(prev => ({ ...prev, photo: 'Upload cancelled or failed' }))
+                if (error.message === 'User cancelled') {
+                  setUploading(false)
+                  return
+                }
+                // Cloudinary failed — fall back to local resize
+                try {
+                  let dataUrl
+                  try {
+                    dataUrl = await resizeImage(file)
+                  } catch {
+                    dataUrl = await fileToDataUrl(file)
+                  }
+                  setFormData(prev => ({ ...prev, images: [dataUrl] }))
+                } catch {
+                  setErrors(prev => ({ ...prev, photo: 'Could not process photo. Please try a different image.' }))
+                } finally {
+                  setUploading(false)
                 }
                 return
               }
+              setUploading(false)
               if (result?.info?.secure_url) {
                 setFormData(prev => ({ ...prev, images: [result.info.secure_url] }))
               }
