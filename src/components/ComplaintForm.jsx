@@ -167,22 +167,30 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         draggable: true,
         icon: L.divIcon({
           className: 'complaint-marker',
-          html: '<div class="marker-wrapper"><div class="marker-pin"></div><div class="marker-pulse"></div></div>',
+          html: '<div class="marker-wrapper" style="--marker-color: #0ea5e9"><div class="marker-pin"></div><div class="marker-pulse"></div></div>',
           iconSize: [36, 36],
           iconAnchor: [18, 36],
         }),
       }).addTo(map)
 
+      const onMarkerMove = (lat, lng) => {
+        setUserMarker({ lat, lng })
+        setFormData(prev => ({
+          ...prev,
+          latitude: lat.toString(),
+          longitude: lng.toString(),
+        }))
+        reverseGeocode(lat, lng)
+      }
+
       marker.on('dragend', (e) => {
         const pos = e.target.getLatLng()
-        setUserMarker({ lat: pos.lat, lng: pos.lng })
-        reverseGeocode(pos.lat, pos.lng)
+        onMarkerMove(pos.lat, pos.lng)
       })
 
       map.on('click', (e) => {
         marker.setLatLng(e.latlng)
-        setUserMarker({ lat: e.latlng.lat, lng: e.latlng.lng })
-        reverseGeocode(e.latlng.lat, e.latlng.lng)
+        onMarkerMove(e.latlng.lat, e.latlng.lng)
       })
 
       mapInstanceRef.current = map
@@ -621,7 +629,16 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
             </button>
             <button
               type="button"
-              onClick={() => setShowMap(false)}
+              onClick={() => {
+                if (userMarker) {
+                  setFormData(prev => ({
+                    ...prev,
+                    latitude: userMarker.lat.toString(),
+                    longitude: userMarker.lng.toString(),
+                  }))
+                }
+                setShowMap(false)
+              }}
               className="flex-1 touch-target bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700"
             >
               Confirm Location

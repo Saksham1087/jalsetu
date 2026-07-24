@@ -46,6 +46,11 @@
   }
 }
 
+.complaint-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
 .marker-wrapper {
   position: relative;
   width: 36px;

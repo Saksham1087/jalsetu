@@ -59,7 +59,7 @@
   height: 0;
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-top: 24px solid var(--marker-color);
+  border-top: 24px solid var(--marker-color, #0ea5e9);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   position: absolute;
   bottom: 0;

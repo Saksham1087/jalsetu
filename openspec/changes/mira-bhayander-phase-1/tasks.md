@@ -105,3 +105,10 @@
 - [x] 11.3 Add "My Complaints Only" toggle + filtering to ComplaintList/FilterBar
 - [x] 11.4 Add "My Complaints Only" toggle + filtering to PublicMap filter panel
 - [x] 11.5 Verify build + lint pass
+
+## 12. Pick on Map Pin Fix
+
+- [x] 12.1 Fix drag handler to sync userMarker to formData.latitude/longitude
+- [x] 12.2 Fix map click handler to sync userMarker to formData.latitude/longitude
+- [x] 12.3 Fix Confirm Location button to sync userMarker to formData before closing
+- [x] 12.4 Verify build + lint pass
