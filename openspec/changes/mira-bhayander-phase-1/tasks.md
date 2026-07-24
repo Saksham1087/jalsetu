@@ -85,3 +85,15 @@
 - [ ] 8.3 Test demo mode (no Firebase) — map loads on Mira Bhayander, chatbot works, form shows wards
 - [x] 8.4 Test Firebase mode — admin login works, dashboard shows complaints, status updates work
 - [ ] 8.5 Test Node.js server — `npm run start` serves app on configured PORT
+
+## 9. Filter Bar Combobox Upgrade
+
+- [x] 9.1 Convert search input to searchable combobox with dropdown panel listing type + status filters
+- [x] 9.2 Add compact active filter pills (dismissible with ×) below the combobox input
+- [x] 9.3 Refine pill button rows and dropdown styling for visual polish
+- [x] 9.4 Verify build + lint pass
+
+## 10. Pill Rows → Dropdowns
+
+- [x] 10.1 Replace type and status pill rows with dropdowns in FilterBar.jsx
+- [x] 10.2 Verify build + lint pass
