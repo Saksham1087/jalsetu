@@ -107,19 +107,32 @@ export function PublicMap({
   const mapContainerRef = useRef(null)
 
   useEffect(() => {
-    if (mapContainerRef.current && mapRef.current) {
-      mapRef.current.invalidateSize()
-    }
+    if (!mapRef.current) return
+
+    mapRef.current.invalidateSize()
+
+    const invalidate = () => mapRef.current?.invalidateSize()
 
     const handleResize = () => {
-      if (mapRef.current) {
-        mapRef.current.invalidateSize()
-      }
+      invalidate()
+    }
+
+    const delayedFallbacks = [300, 800, 1500].map(ms => setTimeout(invalidate, ms))
+
+    let observer = null
+    if (mapContainerRef.current && window.ResizeObserver) {
+      observer = new ResizeObserver(invalidate)
+      observer.observe(mapContainerRef.current)
     }
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize)
-      return () => {
+    }
+
+    return () => {
+      delayedFallbacks.forEach(clearTimeout)
+      if (observer) observer.disconnect()
+      if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize)
       }
     }
@@ -210,68 +223,124 @@ export function PublicMap({
     )
   }
 
-  const SeverityLegend = ({ rawComplaints, filterType, onFilterChange, filterWard, onWardChange }) => {
+  const SeverityLegend = ({ rawComplaints, filterType, onFilterChange, filterWard, onWardChange, onClose }) => {
     const allTypeSelected = filterType.length === 0
+    const [translateY, setTranslateY] = useState(0)
+    const [closing, setClosing] = useState(false)
+    const [dragging, setDragging] = useState(false)
+    const touchStartY = useRef(0)
+
+    const handleTouchStart = (e) => {
+      touchStartY.current = e.touches[0].clientY
+      setDragging(true)
+    }
+
+    const handleTouchMove = (e) => {
+      if (!dragging) return
+      const delta = e.touches[0].clientY - touchStartY.current
+      if (delta > 0) setTranslateY(delta)
+    }
+
+    const handleTouchEnd = () => {
+      setDragging(false)
+      if (translateY > 80) {
+        setClosing(true)
+        setTimeout(() => { onClose(); setTranslateY(0); setClosing(false) }, 200)
+      } else {
+        setTranslateY(0)
+      }
+    }
+
+    const animateClose = () => {
+      setClosing(true)
+      setTimeout(() => { onClose(); setTranslateY(0); setClosing(false) }, 200)
+    }
+
     return (
-      <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-3 border border-gray-200 max-h-[70vh] overflow-y-auto">
-        <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-          <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-5.447A1 1 0 013 12.383V5.25A2.56 2.56 0 015.593 3H10.25a2.56 2.56 0 012.56 2.25v6.133a1 1 0 01-1.59.814L9 20z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          Type
-        </div>
-        <div className="space-y-1.5">
-          {filterKeys.map((key) => {
-            const color = typeColors[key]
-            const label = typeLabels[key]
-            const count = rawComplaints.filter(c => normalizeType(c.type ?? c.severity) === key).length
-            const isChecked = allTypeSelected || filterType.includes(key)
-            return (
-              <label key={key} className="flex items-center gap-2 cursor-pointer group">
+      <>
+        <div className="fixed inset-0 z-[999] bg-black/20 animate-fade-in duration-200" onClick={animateClose} />
+        <div
+          className={`fixed bottom-0 left-0 right-0 z-[1000] bg-white rounded-t-2xl shadow-2xl max-h-[50vh] overflow-y-auto transition-transform duration-200 ease-out ${closing ? 'translate-y-full' : 'translate-y-0'}`}
+          style={dragging && translateY > 0 ? { transform: `translateY(${translateY}px)`, transition: 'none' } : undefined}
+        >
+          <div className="sticky top-0 bg-white rounded-t-2xl z-10 pt-3 pb-1">
+            <div
+              className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            />
+            <div className="flex items-center justify-between px-4 pb-2 border-b border-gray-100">
+              <div className="font-semibold text-gray-900 flex items-center gap-2">
+                <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-5.447A1 1 0 013 12.383V5.25A2.56 2.56 0 015.593 3H10.25a2.56 2.56 0 012.56 2.25v6.133a1 1 0 01-1.59.814L9 20z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Filters
+              </div>
+              <button onClick={animateClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 touch-target" aria-label="Close filters" type="button">
+                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          </div>
+          <div className="px-4 pb-6 pt-2">
+            <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
+              <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-5.447A1 1 0 013 12.383V5.25A2.56 2.56 0 015.593 3H10.25a2.56 2.56 0 012.56 2.25v6.133a1 1 0 01-1.59.814L9 20z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Type
+            </div>
+            <div className="space-y-1.5">
+              {filterKeys.map((key) => {
+                const color = typeColors[key]
+                const label = typeLabels[key]
+                const count = rawComplaints.filter(c => normalizeType(c.type ?? c.severity) === key).length
+                const isChecked = allTypeSelected || filterType.includes(key)
+                return (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => onFilterChange(key)}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                    <span className="text-sm text-gray-700 group-hover:font-medium">{label}</span>
+                    <span className="text-xs text-gray-400 ml-auto">{count}</span>
+                  </label>
+                )
+              })}
+              <label className="flex items-center gap-2 cursor-pointer border-t border-gray-200 pt-1.5 mt-1">
                 <input
                   type="checkbox"
-                  checked={isChecked}
-                  onChange={() => onFilterChange(key)}
+                  checked={allTypeSelected}
+                  onChange={() => onFilterChange('__all__')}
                   className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
-                <span className="w-3 h-3 rounded-full border-2 flex-shrink-0" style={{ borderColor: color, backgroundColor: color }} />
-                <span className="text-sm text-gray-700 group-hover:font-medium">{label}</span>
-                <span className="text-xs text-gray-400 ml-auto">{count}</span>
+                <span className="w-3 h-3 rounded-full flex-shrink-0 border-2 border-gray-300" />
+                <span className="text-sm text-gray-700 font-medium">All ({rawComplaints.length})</span>
               </label>
-            )
-          })}
-          <label className="flex items-center gap-2 cursor-pointer border-t border-gray-200 pt-1.5 mt-1">
-            <input
-              type="checkbox"
-              checked={allTypeSelected}
-              onChange={() => onFilterChange('__all__')}
-              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-            />
-            <span className="w-3 h-3 rounded-full border-2 flex-shrink-0 border-gray-300" />
-            <span className="text-sm text-gray-700 font-medium">All ({rawComplaints.length})</span>
-          </label>
-        </div>
+            </div>
 
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            Ward
+            <div className="mt-4 pt-3 border-t border-gray-200">
+              <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
+                <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Ward
+              </div>
+              <select
+                value={filterWard}
+                onChange={(e) => onWardChange(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+              >
+                <option value="">All Wards</option>
+                {MIRA_BHAYANDER.wards.map((ward) => {
+                  const count = rawComplaints.filter(c => c.ward === ward.name).length
+                  return (
+                    <option key={ward.id} value={ward.name}>
+                      Ward {ward.id} — {ward.area}{count > 0 ? ` (${count})` : ''}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
           </div>
-          <select
-            value={filterWard}
-            onChange={(e) => onWardChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-          >
-            <option value="">All Wards</option>
-            {MIRA_BHAYANDER.wards.map((ward) => {
-              const count = rawComplaints.filter(c => c.ward === ward.name).length
-              return (
-                <option key={ward.id} value={ward.name}>
-                  Ward {ward.id} — {ward.area}{count > 0 ? ` (${count})` : ''}
-                </option>
-              )
-            })}
-          </select>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -380,22 +449,16 @@ return (
         )}
 
         <StatsBar complaints={filteredComplaints} />
-        {showFilters && <SeverityLegend rawComplaints={rawComplaints} filterType={filterType} onFilterChange={handleFilterChange} filterWard={filterWard} onWardChange={setFilterWard} />}
+        {showFilters && <SeverityLegend rawComplaints={rawComplaints} filterType={filterType} onFilterChange={handleFilterChange} filterWard={filterWard} onWardChange={setFilterWard} onClose={() => setShowFilters(false)} />}
         <button
-          onClick={() => setShowFilters(!showFilters)}
+          onClick={() => setShowFilters(true)}
           className="lg:hidden absolute bottom-24 right-4 z-[1000] w-11 h-11 bg-white rounded-full shadow-lg flex items-center justify-center touch-target hover:bg-gray-50 active:bg-gray-100 transition-colors"
-          aria-label={showFilters ? 'Hide filters' : 'Show filters'}
+          aria-label="Open filters"
           type="button"
         >
-          {showFilters ? (
-            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-          )}
+          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
         </button>
       </MapContainer>
     </div>

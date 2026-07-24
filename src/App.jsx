@@ -148,7 +148,7 @@ function AppInner() {
     <div className="h-screen h-[100dvh] bg-gray-50 safe-area-insets flex flex-col">
       <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
       
-      <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col pb-24">
+      <main className={`flex-1 min-h-0 overflow-hidden relative flex flex-col ${activeTab === 'map' ? '' : 'pb-24'}`}>
         {activeTab === 'map' && (
           <PublicMap 
             complaints={complaints}
