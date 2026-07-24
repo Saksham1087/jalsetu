@@ -3,13 +3,14 @@ import { ComplaintCard } from './ComplaintCard'
 import { FilterBar } from './FilterBar'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 
-export function ComplaintList({ complaints, loading, error, onRefresh, userLocation }) {
+export function ComplaintList({ complaints, loading, error, onRefresh, userLocation, user }) {
   const [filter, setFilter] = useState({
     type: '',
     status: '',
     ward: '',
     search: '',
     sortBy: 'distance',
+    myComplaintsOnly: false,
   })
 
   const handleRefresh = useCallback(() => {
@@ -22,6 +23,7 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
       if (filter.type && c.type !== filter.type) return false
       if (filter.status && c.status !== filter.status) return false
       if (filter.ward && c.ward !== filter.ward) return false
+      if (filter.myComplaintsOnly && user && c.userId !== user.uid) return false
       if (filter.search) {
         const search = filter.search.toLowerCase()
         return (c.description || '').toLowerCase().includes(search) ||
@@ -53,7 +55,7 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
         break
     }
     return filtered
-  }, [complaints, filter, userLocation])
+  }, [complaints, filter, userLocation, user])
 
   const complaintTypes = [
     { value: '', label: 'All Types' },
@@ -92,12 +94,13 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-gray-50 pb-24 safe-area-inset-bottom">
-<FilterBar
+        <FilterBar
           filter={filter}
           onFilterChange={setFilter}
           complaintTypes={complaintTypes}
           statusOptions={statusOptions}
           wardOptions={wardOptions}
+          user={user}
         />
 
       <div className="px-4 pb-4">

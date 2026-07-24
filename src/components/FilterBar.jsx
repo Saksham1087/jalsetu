@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 
-export function FilterBar({ filter, onFilterChange, complaintTypes, statusOptions, wardOptions }) {
+export function FilterBar({ filter, onFilterChange, complaintTypes, statusOptions, wardOptions, user }) {
   const [isComboboxOpen, setIsComboboxOpen] = useState(false)
   const comboboxRef = useRef(null)
 
   const handleSearchChange = useCallback((e) => {
     onFilterChange(prev => ({ ...prev, search: e.target.value }))
+  }, [onFilterChange])
+
+  const handleMyComplaintsToggle = useCallback(() => {
+    onFilterChange(prev => ({ ...prev, myComplaintsOnly: !prev.myComplaintsOnly }))
   }, [onFilterChange])
 
   const handleTypeChange = useCallback((e) => {
@@ -173,6 +177,21 @@ export function FilterBar({ filter, onFilterChange, complaintTypes, statusOption
               </span>
             ))}
           </div>
+        )}
+
+        {user && !user.isDemoUser && (
+          <button
+            type="button"
+            onClick={handleMyComplaintsToggle}
+            className={`whitespace-nowrap px-3 py-2 rounded-full text-sm font-medium touch-target transition-colors ${
+              filter.myComplaintsOnly
+                ? 'bg-primary-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            aria-pressed={filter.myComplaintsOnly}
+          >
+            My Complaints Only
+          </button>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

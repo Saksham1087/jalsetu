@@ -96,12 +96,14 @@ export function PublicMap({
   userLocation,
   complaints: propComplaints,
   loading: propLoading,
+  user,
 }) {
   const [fbComplaints, setFbComplaints] = useState([])
   const [fbError, setFbError] = useState(null)
   const [fbLoading, setFbLoading] = useState(appConfig.hasFirebase)
   const [filterType, setFilterType] = useState([])
   const [filterWard, setFilterWard] = useState('')
+  const [myComplaintsOnly, setMyComplaintsOnly] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
@@ -148,8 +150,11 @@ export function PublicMap({
     if (filterWard) {
       filtered = filtered.filter(c => c.ward === filterWard)
     }
+    if (myComplaintsOnly && user && !user.isDemoUser) {
+      filtered = filtered.filter(c => c.userId === user.uid)
+    }
     return filtered
-  }, [rawComplaints, filterType, filterWard])
+  }, [rawComplaints, filterType, filterWard, myComplaintsOnly, user])
 
   const bounds = useMemo(() => {
     if (!filteredComplaints || filteredComplaints.length === 0) return null
@@ -210,10 +215,27 @@ export function PublicMap({
     )
   }
 
-  const SeverityLegend = ({ rawComplaints, filterType, onFilterChange, filterWard, onWardChange }) => {
+  const SeverityLegend = ({ rawComplaints, filterType, onFilterChange, filterWard, onWardChange, myComplaintsOnly, onMyComplaintsToggle }) => {
     const allTypeSelected = filterType.length === 0
     return (
       <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-3 border border-gray-200 max-h-[70vh] overflow-y-auto">
+        {user && !user.isDemoUser && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={onMyComplaintsToggle}
+              className={`w-full px-3 py-2 rounded-full text-sm font-medium touch-target transition-colors ${
+                myComplaintsOnly
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              aria-pressed={myComplaintsOnly}
+            >
+              My Complaints Only
+            </button>
+          </div>
+        )}
+
         <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
           <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-5.447A1 1 0 013 12.383V5.25A2.56 2.56 0 015.593 3H10.25a2.56 2.56 0 012.56 2.25v6.133a1 1 0 01-1.59.814L9 20z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           Type
@@ -380,7 +402,7 @@ return (
         )}
 
         <StatsBar complaints={filteredComplaints} />
-        {showFilters && <SeverityLegend rawComplaints={rawComplaints} filterType={filterType} onFilterChange={handleFilterChange} filterWard={filterWard} onWardChange={setFilterWard} />}
+        {showFilters && <SeverityLegend rawComplaints={rawComplaints} filterType={filterType} onFilterChange={handleFilterChange} filterWard={filterWard} onWardChange={setFilterWard} myComplaintsOnly={myComplaintsOnly} onMyComplaintsToggle={() => setMyComplaintsOnly(prev => !prev)} />}
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="lg:hidden absolute bottom-24 right-4 z-[1000] w-11 h-11 bg-white rounded-full shadow-lg flex items-center justify-center touch-target hover:bg-gray-50 active:bg-gray-100 transition-colors"

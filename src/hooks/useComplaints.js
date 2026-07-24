@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { subscribeToUserComplaints, addComplaint, updateComplaintStatus, getAllComplaints } from '../services/firestore'
+import { subscribeToAllComplaints, addComplaint, updateComplaintStatus, getAllComplaints } from '../services/firestore'
 import { complaintService } from '../services/complaintService'
 import { appConfig } from '../lib/config'
 
@@ -37,12 +37,7 @@ export function useComplaints(userLocation, user) {
       return
     }
 
-    if (!user || user.isDemoUser) {
-      setLoading(false)
-      return
-    }
-
-    const unsubscribe = subscribeToUserComplaints(user.uid, (data) => {
+    const unsubscribe = subscribeToAllComplaints((data) => {
       setComplaints(normalizeData(data))
       setLoading(false)
     }, (err) => {
@@ -51,7 +46,7 @@ export function useComplaints(userLocation, user) {
     })
 
     return () => unsubscribe()
-  }, [user, userLocation])
+  }, [])
 
   const submitComplaint = useCallback(async (complaintData) => {
     if (!appConfig.hasFirebase) {
@@ -107,9 +102,8 @@ export function useComplaints(userLocation, user) {
       setComplaints(normalizeData(complaintService.getAll()))
       return
     }
-    if (!user || user.isDemoUser) return
     const all = await getAllComplaints()
-    setComplaints(normalizeData(all.filter(c => c.userId === user.uid)))
+    setComplaints(normalizeData(all))
   }, [user])
 
   return {

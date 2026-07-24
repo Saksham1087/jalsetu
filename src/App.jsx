@@ -158,6 +158,7 @@ function AppInner() {
             onComplaintClick={handleComplaintSelect}
             showUserLocation={true}
             userLocation={location}
+            user={user}
           />
         )}
         
@@ -168,6 +169,7 @@ function AppInner() {
             error={error}
             onRefresh={refresh}
             userLocation={location}
+            user={user}
           />
         )}
         

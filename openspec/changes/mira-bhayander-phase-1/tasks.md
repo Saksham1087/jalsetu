@@ -97,3 +97,11 @@
 
 - [x] 10.1 Replace type and status pill rows with dropdowns in FilterBar.jsx
 - [x] 10.2 Verify build + lint pass
+
+## 11. Public Complaints Visibility
+
+- [x] 11.1 Switch useComplaints from subscribeToUserComplaints to subscribeToAllComplaints
+- [x] 11.2 Pass user prop to PublicMap and ComplaintList from App.jsx
+- [x] 11.3 Add "My Complaints Only" toggle + filtering to ComplaintList/FilterBar
+- [x] 11.4 Add "My Complaints Only" toggle + filtering to PublicMap filter panel
+- [x] 11.5 Verify build + lint pass
