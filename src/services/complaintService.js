@@ -23,12 +23,6 @@ export const complaintService = {
     return complaints.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   },
 
-  async getById(id) {
-    await delay(200)
-    const complaints = getComplaints()
-    return complaints.find(c => c.id === id) || null
-  },
-
   async create(data) {
     await delay(500)
     const complaints = getComplaints()
@@ -70,19 +64,6 @@ export const complaintService = {
     complaints[index] = updated
     saveComplaints(complaints)
     return updated
-  },
-
-  async delete(id) {
-    await delay(200)
-    const complaints = getComplaints()
-    const filtered = complaints.filter(c => c.id !== id)
-    saveComplaints(filtered)
-  },
-
-  async getByUser(userId) {
-    await delay(200)
-    const complaints = getComplaints()
-    return complaints.filter(c => c.userId === userId)
   },
 
   seedDemoData() {
@@ -197,14 +178,4 @@ export const complaintService = {
     saveComplaints(demoComplaints)
     return demoComplaints
   },
-}
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371e3
-  const φ1 = lat1 * Math.PI / 180
-  const φ2 = lat2 * Math.PI / 180
-  const Δφ = (lat2 - lat1) * Math.PI / 180
-  const Δλ = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2)
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
 }

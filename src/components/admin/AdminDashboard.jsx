@@ -1,13 +1,10 @@
 import { useState, useMemo } from 'react'
 import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
+import { statusConfig } from '../../lib/statusConfig'
 
-const statusColors = {
-  submitted: { bg: 'bg-yellow-100', text: 'text-yellow-800', dot: 'bg-yellow-500' },
-  acknowledged: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
-  in_progress: { bg: 'bg-indigo-100', text: 'text-indigo-800', dot: 'bg-indigo-500' },
-  resolved: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
-  rejected: { bg: 'bg-red-100', text: 'text-red-800', dot: 'bg-red-500' },
-}
+const statusColors = Object.fromEntries(
+  Object.entries(statusConfig).map(([key, v]) => [key, { bg: v.adminBg, text: v.adminText, dot: v.dot }])
+)
 
 export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRefresh }) {
   const [statusFilter, setStatusFilter] = useState('')
@@ -15,13 +12,14 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
 
   const stats = useMemo(() => {
     const arr = Array.isArray(complaints) ? complaints : []
-    return {
-      total: arr.length,
-      pending: arr.filter(c => c.status === 'submitted').length,
-      acknowledged: arr.filter(c => c.status === 'acknowledged').length,
-      inProgress: arr.filter(c => c.status === 'in_progress').length,
-      resolved: arr.filter(c => c.status === 'resolved').length,
+    const counts = { total: arr.length, pending: 0, acknowledged: 0, inProgress: 0, resolved: 0 }
+    for (const c of arr) {
+      if (c.status === 'submitted') counts.pending++
+      else if (c.status === 'acknowledged') counts.acknowledged++
+      else if (c.status === 'in_progress') counts.inProgress++
+      else if (c.status === 'resolved') counts.resolved++
     }
+    return counts
   }, [complaints])
 
   const filteredComplaints = useMemo(() => {
@@ -45,25 +43,25 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map(stat => (
-          <div key={stat.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div key={stat.label} className="bg-card rounded-xl shadow-sm border border-border p-4">
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${stat.color}`} />
-              <span className="text-sm text-gray-500">{stat.label}</span>
+              <span className="text-sm text-text-secondary">{stat.label}</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-text-primary mt-2">{stat.value}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-4">
         <div className="flex flex-wrap gap-3">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+            <label className="block text-xs font-medium text-text-secondary mb-1">Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-3 border border-border rounded-lg text-sm bg-card"
             >
               <option value="">All Statuses</option>
               <option value="submitted">Submitted</option>
@@ -74,11 +72,11 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Ward</label>
+            <label className="block text-xs font-medium text-text-secondary mb-1">Ward</label>
             <select
               value={wardFilter}
               onChange={(e) => setWardFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-3 border border-border rounded-lg text-sm bg-card"
             >
               <option value="">All Wards</option>
               {MIRA_BHAYANDER.wards.map(w => (
@@ -90,22 +88,22 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
       </div>
 
       {/* Complaint Queue */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Complaint Queue</h3>
+      <div className="bg-card rounded-xl shadow-sm border border-border">
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="font-semibold text-text-primary">Complaint Queue</h3>
         </div>
 
         {filteredComplaints.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-text-secondary">
             <p>No complaints match the selected filters.</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-divider">
             {filteredComplaints.map(complaint => {
               const sc = statusColors[complaint.status] || statusColors.submitted
               const date = new Date(complaint.createdAt)
               return (
-                <div key={complaint.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div key={complaint.id} className="px-4 py-3 hover:bg-surface transition-colors">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -113,12 +111,12 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
                           <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                           {complaint.status?.replace('_', ' ')}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-text-tertiary">
                           {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-900 font-medium truncate">{complaint.description}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <p className="text-sm text-text-primary font-medium truncate">{complaint.description}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-text-secondary">
                         {complaint.ward && <span>Ward: {complaint.ward}</span>}
                         <span>{complaint.type || complaint.severity}</span>
                         {complaint.userName && <span>by {complaint.userName}</span>}
@@ -126,7 +124,7 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
                     </div>
                     <button
                       onClick={() => onSelectComplaint(complaint)}
-                      className="touch-target px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors flex-shrink-0"
+                      className="touch-target px-3 py-1.5 text-xs font-medium text-teal-600 bg-teal-600/10 rounded-lg hover:bg-teal-600/20 transition-colors flex-shrink-0"
                     >
                       View
                     </button>

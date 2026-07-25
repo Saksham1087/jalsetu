@@ -1,15 +1,17 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react'
 import { ComplaintForm } from './components/ComplaintForm'
 import { ComplaintList } from './components/ComplaintList'
 import { PublicMap } from './components/PublicMap'
 import { Header } from './components/Header'
 import { BottomNav } from './components/BottomNav'
 import { ComplaintDetail } from './components/ComplaintDetail'
-import { ChatWidget } from './components/ChatWidget'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { AdminLayout } from './components/admin/AdminLayout'
+
+const ChatWidget = lazy(() => import('./components/ChatWidget').then(m => ({ default: m.ChatWidget })))
 import { useComplaints } from './hooks/useComplaints'
 import { useLocation } from './hooks/useLocation'
+import { useTheme } from './hooks/useTheme'
 import { AuthProvider, useAuthContext } from './contexts/AuthContext'
 import { subscribeToAllComplaints, updateComplaintStatus } from './services/firestore'
 import { appConfig } from './lib/config'
@@ -18,13 +20,13 @@ import { complaintService } from './services/complaintService'
 function AppInner() {
   const [activeTab, setActiveTab] = useState('map')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
-  const [prefillComplaint, setPrefillComplaint] = useState(null)
   const [route, setRoute] = useState('main')
   const [adminComplaints, setAdminComplaints] = useState([])
   
   const { location, error: locationError, requestPermission } = useLocation()
   const { user, loading: authLoading, login, logout, userRole, refreshRole } = useAuthContext()
   const { complaints, loading, error, submitComplaint, refresh } = useComplaints(location, user)
+  useTheme()
 
   useEffect(() => {
     const hash = window.location.hash
@@ -129,7 +131,7 @@ function AppInner() {
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
             <p className="text-gray-500 mb-4">You do not have admin privileges.</p>
-            <button onClick={handleNavigateHome} className="text-primary-600 hover:underline">Back to Home</button>
+            <button onClick={handleNavigateHome} className="text-teal-600 hover:underline">Back to Home</button>
           </div>
         </div>
       )
@@ -145,10 +147,10 @@ function AppInner() {
   }
 
   return (
-    <div className="h-screen h-[100dvh] bg-gray-50 safe-area-insets flex flex-col">
+    <div className="h-screen h-[100dvh] bg-page safe-area-insets flex flex-col">
       <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
       
-      <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col pb-24">
+      <main className="flex-1 min-h-0 relative flex flex-col pb-24">
         {activeTab === 'map' && (
           <PublicMap 
             complaints={complaints}
@@ -180,8 +182,6 @@ function AppInner() {
             user={user}
             authLoading={authLoading}
             loading={loading}
-            prefill={prefillComplaint}
-            onPrefillComplete={() => setPrefillComplaint(null)}
           />
         )}
 
@@ -197,7 +197,6 @@ function AppInner() {
       <BottomNav 
         activeTab={activeTab} 
         onTabChange={setActiveTab}
-        userLocation={location}
         user={user}
       />
       
@@ -210,10 +209,11 @@ function AppInner() {
         </div>
       )}
 
-      {/* Chat Widget */}
-      <ChatWidget 
-        position="bottom-right"
-      />
+      {appConfig.hasGroq && (
+        <Suspense fallback={null}>
+          <ChatWidget />
+        </Suspense>
+      )}
     </div>
   )
 }

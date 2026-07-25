@@ -38,7 +38,7 @@ export function GoogleSignInButton({ user, onAuthChange }) {
         </span>
         <button
           onClick={handleSignOut}
-          className="touch-target px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900"
+          className="touch-target px-3 py-1.5 text-sm font-medium text-text-body hover:text-text-primary disabled:opacity-50"
         >
           Sign Out
         </button>
@@ -49,11 +49,11 @@ export function GoogleSignInButton({ user, onAuthChange }) {
   if (user) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-600 hidden sm:block truncate max-w-[120px]">{user.displayName || user.email}</span>
+        <span className="text-sm text-text-body hidden sm:block truncate max-w-[120px]">{user.displayName || user.email}</span>
         <button
           onClick={handleSignOut}
           disabled={loading}
-          className="touch-target px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-50"
+          className="touch-target px-3 py-1.5 text-sm font-medium text-text-body hover:text-text-primary disabled:opacity-50"
         >
           Sign Out
         </button>
@@ -65,7 +65,7 @@ export function GoogleSignInButton({ user, onAuthChange }) {
     <button
       onClick={handleSignIn}
       disabled={loading}
-      className="touch-target px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 active:bg-primary-800 disabled:opacity-50 transition-colors flex items-center gap-2"
+      className="touch-target px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 active:bg-teal-800 disabled:opacity-50 transition-colors flex items-center gap-2"
     >
       <svg className="w-4 h-4" viewBox="0 0 24 24">
         <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

@@ -8,7 +8,7 @@
 - [x] 2.1 Update `src/components/PublicMap.jsx` — change default center from Delhi to Mira Bhayander (19.2813, 72.8568)
 - [x] 2.2 Add `maxBounds` to MapContainer restricting to `[[19.25, 72.83], [19.32, 72.90]]`
 - [x] 2.3 Update demo data coordinates in `src/services/complaintService.js` to Mira Bhayander locations
-- [ ] 2.4 Verify map loads centered on Mira Bhayander and panning stops at bounds
+- [x] 2.4 Verify map loads centered on Mira Bhayander and panning stops at bounds
 
 ## 3. Ward System
 
@@ -82,9 +82,9 @@
 
 - [x] 8.1 Run `npm run lint` and fix any Oxlint errors
 - [x] 8.2 Run `npm run build` and verify production build succeeds
-- [ ] 8.3 Test demo mode (no Firebase) — map loads on Mira Bhayander, chatbot works, form shows wards
+- [x] 8.3 Test demo mode (no Firebase) — map loads on Mira Bhayander, chatbot works, form shows wards
 - [x] 8.4 Test Firebase mode — admin login works, dashboard shows complaints, status updates work
-- [ ] 8.5 Test Node.js server — `npm run start` serves app on configured PORT
+- [x] 8.5 Test Node.js server — `npm run start` serves app on configured PORT
 
 ## 9. Filter Bar Combobox Upgrade
 
@@ -112,3 +112,9 @@
 - [x] 12.2 Fix map click handler to sync userMarker to formData.latitude/longitude
 - [x] 12.3 Fix Confirm Location button to sync userMarker to formData before closing
 - [x] 12.4 Verify build + lint pass
+
+## 13. Map Popup Fixes (View Details Button)
+
+- [x] 13.1 Wire "View Details" button click handler in marker popup
+- [x] 13.2 Bump ComplaintDetail z-index from 50 to 1100 so it clears Leaflet popup pane
+- [x] 13.3 Verify build + lint pass

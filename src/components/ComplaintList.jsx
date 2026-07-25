@@ -2,13 +2,13 @@ import { useState, useMemo, useCallback } from 'react'
 import { ComplaintCard } from './ComplaintCard'
 import { FilterBar } from './FilterBar'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
+import { getDistance } from '../utils/geo'
 
 export function ComplaintList({ complaints, loading, error, onRefresh, userLocation, user }) {
   const [filter, setFilter] = useState({
     type: '',
     status: '',
     ward: '',
-    search: '',
     sortBy: 'distance',
     myComplaintsOnly: false,
   })
@@ -24,12 +24,6 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
       if (filter.status && c.status !== filter.status) return false
       if (filter.ward && c.ward !== filter.ward) return false
       if (filter.myComplaintsOnly && user && c.userId !== user.uid) return false
-      if (filter.search) {
-        const search = filter.search.toLowerCase()
-        return (c.description || '').toLowerCase().includes(search) ||
-               (c.address || '').toLowerCase().includes(search) ||
-               (c.ward || '').toLowerCase().includes(search)
-      }
       return true
     })
 
@@ -83,17 +77,23 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
 
   if (loading && complaints.length === 0) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-gray-50 flex items-center justify-center pb-24 safe-area-inset-bottom">
+      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center pb-24 safe-area-inset-bottom">
         <div className="text-center p-8">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading complaints...</p>
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full bg-teal-100 animate-[water-ripple_1.5s_ease-out_infinite]" />
+            <div className="absolute inset-0 rounded-full bg-teal-100 animate-[water-ripple_1.5s_ease-out_infinite_0.5s]" />
+            <svg className="relative w-12 h-12 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-2.5 4.5-7.5 9-7.5 13.5a7.5 7.5 0 0015 0c0-4.5-5-9-7.5-13.5z" />
+            </svg>
+          </div>
+          <p className="text-sm text-text-secondary">Loading complaints...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-gray-50 pb-24 safe-area-inset-bottom">
+    <div className="min-h-screen min-h-[100dvh] pb-24 safe-area-inset-bottom">
         <FilterBar
           filter={filter}
           onFilterChange={setFilter}
@@ -113,11 +113,20 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
 
         {sortedComplaints.length === 0 ? (
           <div className="py-12 text-center">
-            <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg className="w-14 h-14 mx-auto text-text-tertiary/30 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">No complaints found</h3>
-            <p className="text-gray-500 text-sm">Try adjusting your filters or pull to refresh</p>
+            <h3 className="font-display text-base font-semibold text-text-primary mb-1">No complaints yet</h3>
+            <p className="text-sm text-text-secondary mb-4">Be the first to report a water issue in your area.</p>
+            <button
+              onClick={() => onRefresh?.()}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-xl hover:bg-teal-700 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+              </svg>
+              Refresh
+            </button>
           </div>
         ) : (
           <div className="space-y-3" role="feed" aria-label="Water complaints">
@@ -131,13 +140,4 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
   )
 }
 
-function getDistance(userLoc, complaint) {
-  if (!userLoc || !complaint.latitude || !complaint.longitude) return Infinity
-  const R = 6371e3
-  const φ1 = userLoc.latitude * Math.PI / 180
-  const φ2 = complaint.latitude * Math.PI / 180
-  const Δφ = (complaint.latitude - userLoc.latitude) * Math.PI / 180
-  const Δλ = (complaint.longitude - userLoc.longitude) * Math.PI / 180
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2)
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-}
+

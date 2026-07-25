@@ -4,7 +4,6 @@ import {
   updateDoc, 
   doc, 
   query, 
-  where, 
   orderBy, 
   onSnapshot, 
   getDocs,
@@ -16,7 +15,7 @@ import { db } from '../lib/firebase'
 const COLLECTION = 'complaints'
 const STATUSES = ['submitted', 'acknowledged', 'in_progress', 'resolved', 'rejected']
 
-export function createComplaintData(user, input) {
+function createComplaintData(user, input) {
   const lat = input.latitude ?? input.lat
   const lng = input.longitude ?? input.lng
   if (lat == null || lng == null || isNaN(Number(lat)) || isNaN(Number(lng))) {
@@ -89,62 +88,6 @@ export function subscribeToAllComplaints(callback, errorCallback) {
   })
 }
 
-export function subscribeToUserComplaints(userId, callback, errorCallback) {
-  if (!db) {
-    errorCallback?.(new Error('Firestore not initialized'))
-    return () => {}
-  }
-  
-  const q = query(
-    collection(db, COLLECTION),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  )
-  
-  return onSnapshot(q, (snapshot) => {
-    const complaints = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-    }))
-    callback(complaints)
-  }, (error) => {
-    console.error('User complaints subscription error:', error)
-    errorCallback?.(error)
-  })
-}
-
-export function subscribeToNearbyComplaints(lat, lng, radiusKm = 10, callback, errorCallback) {
-  if (!db) {
-    errorCallback?.(new Error('Firestore not initialized'))
-    return () => {}
-  }
-  
-  const latRange = radiusKm / 111
-  const lngRange = radiusKm / (111 * Math.cos(lat * Math.PI / 180))
-  
-  const q = query(
-    collection(db, COLLECTION),
-    where('lat', '>=', lat - latRange),
-    where('lat', '<=', lat + latRange),
-    where('lng', '>=', lng - lngRange),
-    where('lng', '<=', lng + lngRange),
-    orderBy('createdAt', 'desc')
-  )
-  
-  return onSnapshot(q, (snapshot) => {
-    const complaints = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-    }))
-    callback(complaints)
-  }, (error) => {
-    console.error('Nearby complaints subscription error:', error)
-    errorCallback?.(error)
-  })
-}
-
 export async function getAllComplaints() {
   if (!db) throw new Error('Firestore not initialized')
   const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'))
@@ -156,10 +99,4 @@ export async function getAllComplaints() {
   }))
 }
 
-export async function uploadComplaintPhoto(file, userId) {
-  const { getStorage, ref, uploadBytes, getDownloadURL } = await import('firebase/storage')
-  const storage = getStorage()
-  const fileRef = ref(storage, `complaints/${userId}/${Date.now()}_${file.name}`)
-  await uploadBytes(fileRef, file)
-  return getDownloadURL(fileRef)
-}
+

@@ -58,7 +58,7 @@ async function resizeImage(file) {
   }
 }
 
-export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loading, prefill, onPrefillComplete }) {
+export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loading }) {
   const [formData, setFormData] = useState({
     type: '',
     description: '',
@@ -72,6 +72,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
   })
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [mapReady, setMapReady] = useState(false)
@@ -98,22 +99,6 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
   }, [location])
 
   useEffect(() => {
-    if (prefill && !formData.description) {
-      setFormData(prev => ({
-        ...prev,
-        type: prefill.suggestedType || 'other',
-        description: prefill.userMessage || '',
-      }))
-    }
-  }, [prefill])
-
-  useEffect(() => {
-    if (onPrefillComplete && prefill && formData.description) {
-      onPrefillComplete()
-    }
-  }, [onPrefillComplete, prefill, formData.description])
-
-  useEffect(() => {
     if (showMap && mapRef.current && !mapInstanceRef.current) {
       initMap()
     }
@@ -133,7 +118,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
 
       const center = userMarker
         ? [userMarker.lat, userMarker.lng]
-        : (userLocation ? [userLocation.latitude, userLocation.longitude] : [28.6139, 77.2090])
+        : (userLocation ? [userLocation.latitude, userLocation.longitude] : MIRA_BHAYANDER.center)
 
       const map = L.map(mapRef.current, {
         center,
@@ -167,7 +152,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         draggable: true,
         icon: L.divIcon({
           className: 'complaint-marker',
-          html: '<div class="marker-wrapper" style="--marker-color: #0ea5e9"><div class="marker-pin"></div><div class="marker-pulse"></div></div>',
+          html: '<div class="marker-wrapper" style="--marker-color: #127A7A"><div class="marker-pin"></div><div class="marker-pulse"></div></div>',
           iconSize: [36, 36],
           iconAnchor: [18, 36],
         }),
@@ -221,6 +206,27 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
     }
   }
 
+  const validateField = useCallback((name, value) => {
+    switch (name) {
+      case 'type':
+        return !value ? 'Please select type' : ''
+      case 'description':
+        return !value.trim() ? 'Description is required' : ''
+      default:
+        return ''
+    }
+  }, [])
+
+  const handleBlur = useCallback((name, value) => {
+    setErrors(prev => {
+      const msg = validateField(name, value)
+      if (msg) return { ...prev, [name]: msg }
+      const r = { ...prev }
+      delete r[name]
+      return r
+    })
+  }, [validateField])
+
   const handleLocationPick = useCallback(async () => {
     try {
       const loc = await getCurrentLocation()
@@ -231,6 +237,13 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         longitude: loc.longitude.toString(),
       }))
       reverseGeocode(loc.latitude, loc.longitude)
+
+      if (mapInstanceRef.current && markerRef.current) {
+        const latlng = [loc.latitude, loc.longitude]
+        markerRef.current.setLatLng(latlng)
+        mapInstanceRef.current.setView(latlng, 17)
+        mapInstanceRef.current.invalidateSize()
+      }
     } catch (err) {
       setErrors(prev => ({ ...prev, location: 'Unable to get location. Please enable location access.' }))
     }
@@ -347,19 +360,23 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
 
       await onSubmit(complaintData)
 
-      setFormData({
-        type: '',
-        description: '',
-        latitude: '',
-        longitude: '',
-        address: '',
-        landmark: '',
-        ward: '',
-        mobile: '',
-        images: [],
-      })
-      setUserMarker(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      setShowSuccess(true)
+      setTimeout(() => {
+        setShowSuccess(false)
+        setFormData({
+          type: '',
+          description: '',
+          latitude: '',
+          longitude: '',
+          address: '',
+          landmark: '',
+          ward: '',
+          mobile: '',
+          images: [],
+        })
+        setUserMarker(null)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      }, 2400)
 
     } catch (err) {
       setErrors({ submit: err.message || 'Failed to submit complaint' })
@@ -369,12 +386,32 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
   }
 
   return (
-    <div className="bg-gray-50 safe-area-inset-bottom overflow-y-auto pb-32">
+    <div className="flex-1 min-h-0 overflow-y-auto safe-area-inset-bottom pb-24">
       <form onSubmit={handleSubmit} className="px-4 py-4 space-y-6" noValidate>
         <div className="max-w-xl mx-auto pb-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Report Water Issue</h2>
-          <p className="text-gray-500 text-sm mb-6">Help us improve water supply in your area</p>
+          <h2 className="text-2xl font-bold text-text-primary mb-2">Report Water Issue</h2>
+          <p className="text-text-secondary text-sm mb-6">Help us improve water supply in your area</p>
 
+          {showSuccess ? (
+            <div className="mb-6 p-6 bg-card rounded-2xl border border-teal-200/60 shadow-sm text-center animate-fade-in">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 rounded-full bg-teal-100 animate-[water-ripple_1.5s_ease-out_infinite]" />
+                <div className="absolute inset-0 rounded-full bg-teal-100 animate-[water-ripple_1.5s_ease-out_infinite_0.5s]" />
+                <div className="relative w-16 h-16 rounded-full bg-teal-600 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="font-display text-lg font-semibold text-text-primary mb-1">Complaint Submitted</h3>
+              <p className="text-sm text-text-secondary">Your water issue has been reported. Track its status in the list view.</p>
+              <div className="mt-4 h-1.5 bg-surface rounded-full overflow-hidden">
+                <div className="h-full bg-teal-600 rounded-full animate-[water-rise_2s_ease-out]" />
+              </div>
+              <p className="text-xs text-text-tertiary mt-2">Ticket created</p>
+            </div>
+          ) : (
+          <>
           {errors.submit && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
               {errors.submit}
@@ -395,11 +432,15 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+            <label className="block text-sm font-medium text-text-body mb-2">Type *</label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-              className={`w-full px-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E")] bg-right bg-no-repeat pr-8 ${errors.type ? 'border-red-500' : 'border-gray-300'}`}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, type: e.target.value }))
+                setErrors(prev => { const r = { ...prev }; delete r.type; return r })
+              }}
+              onBlur={(e) => handleBlur('type', e.target.value)}
+              className={`w-full px-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none bg-card bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23889ba3%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E")] bg-right bg-no-repeat pr-8 ${errors.type ? 'border-red-500' : 'border-border'}`}
             >
               <option value="" disabled>Select type</option>
               {TYPE_OPTIONS.map(opt => (
@@ -412,27 +453,31 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+            <label className="block text-sm font-medium text-text-body mb-2">Description *</label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, description: e.target.value }))
+                setErrors(prev => { const r = { ...prev }; delete r.description; return r })
+              }}
+              onBlur={(e) => handleBlur('description', e.target.value)}
               rows={4}
-              className={`w-full px-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-4 py-3 border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-card ${errors.description ? 'border-red-500' : 'border-border'}`}
               placeholder="Describe the issue in detail..."
             />
             {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Photo <span className="text-gray-400 font-normal">(Optional, Max 10MB)</span></label>
+            <label className="block text-sm font-medium text-text-body mb-2">Photo <span className="text-text-tertiary font-normal">(Optional, Max 10MB)</span></label>
             <div className="space-y-3">
               {formData.images.length > 0 ? (
-                <div className="relative aspect-square max-w-xs rounded-lg overflow-hidden border border-gray-200">
+                <div className="relative aspect-square max-w-[280px] sm:max-w-xs rounded-lg overflow-hidden border border-border">
                   <img src={formData.images[0]} alt="Uploaded complaint photo" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={removePhoto}
-                    className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    className="absolute top-2 right-2 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 touch-target"
                     aria-label="Remove photo"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -451,19 +496,19 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="relative aspect-square w-full max-w-xs rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="relative aspect-square w-full max-w-xs rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-teal-400 hover:bg-teal-600/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-12 h-12 text-text-tertiary mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <span className="text-gray-600 font-medium">Tap to upload photo</span>
-                  <span className="text-xs text-gray-400">JPG, PNG up to 10MB</span>
+                  <span className="text-text-body font-medium">Tap to upload photo</span>
+                  <span className="text-xs text-text-tertiary">JPG, PNG up to 10MB</span>
                 </button>
               )}
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="hidden" onChange={handlePhotoUpload} />
               {uploading && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex items-center gap-2 text-sm text-text-body">
+                  <div className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
                   Processing photo...
                 </div>
               )}
@@ -472,13 +517,13 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+            <label className="block text-sm font-medium text-text-body mb-2">Location *</label>
             <div className="space-y-2">
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleLocationPick}
-                  className="flex-1 touch-target px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 flex items-center justify-center gap-2"
+                  className="flex-1 touch-target px-4 py-3 border border-border rounded-lg bg-card text-sm font-medium text-text-body flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -489,11 +534,11 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                 <button
                   type="button"
                   onClick={() => setShowMap(true)}
-                  className="touch-target px-4 py-3 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 flex items-center justify-center gap-2"
+                  className="touch-target px-4 py-3 border border-border rounded-lg bg-card text-sm font-medium text-text-body flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-5.447A1 1 0 013 12.383V5.25A2.56 2.56 0 015.593 3H10.25a2.56 2.56 0 012.56 2.25v6.133a1 1 0 01-1.59.814L9 20z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <circle cx="12" cy="11" r="3" strokeWidth={2} />
                   </svg>
                   Pick on Map
                 </button>
@@ -510,18 +555,18 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
               )}
 
               {(formData.latitude && formData.longitude) && (
-                <div className="bg-primary-50 border border-primary-200 rounded-lg p-3">
-                  <p className="text-sm text-primary-800 font-medium flex items-center gap-1">
+                <div className="bg-teal-600/10 border border-teal-600/20 rounded-lg p-3">
+                  <p className="text-sm text-teal-600 font-medium flex items-center gap-1">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     Location captured
                   </p>
-                  <p className="text-xs text-primary-600 mt-1 font-mono">
+                  <p className="text-xs text-teal-600 mt-1 font-mono">
                     {parseFloat(formData.latitude).toFixed(6)}, {parseFloat(formData.longitude).toFixed(6)}
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowMap(true)}
-                    className="mt-2 text-sm text-primary-600 hover:underline flex items-center gap-1"
+                    className="mt-2 text-sm text-teal-600 hover:underline flex items-center gap-1"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     Adjust on map
@@ -534,11 +579,11 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ward / Area</label>
+              <label className="block text-sm font-medium text-text-body mb-2">Ward / Area</label>
               <select
                 value={formData.ward}
                 onChange={(e) => setFormData(prev => ({ ...prev, ward: e.target.value }))}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-white bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E")] bg-right bg-no-repeat pr-8`}
+                className={`w-full px-4 py-3 border border-border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none bg-card bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20fill%3D%22%23889ba3%22%20d%3D%22M4%206l4%204%204-4H4z%22%2F%3E%3C%2Fsvg%3E")] bg-right bg-no-repeat pr-8`}
               >
                 <option value="">Select Ward</option>
                 {MIRA_BHAYANDER.wards.map(w => (
@@ -547,19 +592,19 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Landmark</label>
+              <label className="block text-sm font-medium text-text-body mb-2">Landmark</label>
               <input
                 type="text"
                 value={formData.landmark}
                 onChange={(e) => setFormData(prev => ({ ...prev, landmark: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-4 py-3 border border-border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-card"
                 placeholder="Nearby landmark"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number (optional)</label>
+            <label className="block text-sm font-medium text-text-body mb-2">Mobile Number (optional)</label>
             <input
               type="tel"
               value={formData.mobile}
@@ -567,7 +612,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                 const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 10)
                 setFormData(prev => ({ ...prev, mobile: val }))
               }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-4 py-3 border border-border rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-card"
               placeholder="10-digit mobile number"
             />
           </div>
@@ -575,22 +620,24 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
           <button
             type="submit"
             disabled={submitting || loading || uploading || authLoading || (!appConfig.isDemo && !user)}
-            className="w-full mt-8 touch-target min-h-[48px] py-3.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 active:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full mt-8 touch-target min-h-[48px] py-3.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 active:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Submitting...' : uploading ? 'Uploading photo...' : 'Submit Complaint'}
           </button>
 
-          <p className="text-center text-xs text-gray-500">
+          <p className="text-center text-xs text-text-secondary">
             By submitting, you agree to share your location and contact info with JalSetu authorities
           </p>
+        </>
+        )}
         </div>
       </form>
 
       {showMap && (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col safe-area-insets animate-slide-up" role="dialog" aria-modal="true" aria-labelledby="map-title">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-            <h3 id="map-title" className="text-lg font-semibold">Select Location</h3>
-            <button onClick={() => setShowMap(false)} className="touch-target p-2 text-gray-400 hover:text-gray-600" aria-label="Close map">
+        <div className="fixed inset-0 z-50 bg-card flex flex-col safe-area-insets animate-slide-up" role="dialog" aria-modal="true" aria-labelledby="map-title">
+          <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-card z-10">
+            <h3 id="map-title" className="text-lg font-semibold text-text-primary">Select Location</h3>
+            <button onClick={() => setShowMap(false)} className="touch-target p-2 text-text-tertiary hover:text-text-body" aria-label="Close map">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -600,30 +647,30 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
           <div className="flex-1 relative" style={{ height: '100%' }}>
             <div ref={mapRef} className="absolute inset-0" />
             {!mapReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+              <div className="absolute inset-0 flex items-center justify-center bg-surface">
                 <div className="text-center">
-                  <div className="w-10 h-10 border-3 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Loading map...</p>
+                  <div className="w-10 h-10 border-3 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-text-body">Loading map...</p>
                 </div>
               </div>
             )}
 
             {mapReady && userMarker && (
-              <div className="absolute top-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg flex items-center gap-2 max-w-md mx-auto">
-                <svg className="w-5 h-5 text-primary-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="absolute top-4 left-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg p-3 shadow-lg flex items-center gap-2 max-w-md mx-auto">
+                <svg className="w-5 h-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span className="text-sm text-gray-700 flex-1">Drag the pin or tap map to set location</span>
+                <span className="text-sm text-text-body flex-1">Drag the pin or tap map to set location</span>
               </div>
             )}
           </div>
 
-          <div className="p-4 border-t border-gray-200 bg-white flex gap-2">
+          <div className="p-4 border-t border-border bg-card flex gap-2">
             <button
               type="button"
               onClick={handleLocationPick}
-              className="flex-1 touch-target border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+              className="flex-1 touch-target border border-border text-text-body font-medium rounded-lg hover:bg-surface"
             >
               Use My Location
             </button>
@@ -639,7 +686,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                 }
                 setShowMap(false)
               }}
-              className="flex-1 touch-target bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700"
+              className="flex-1 touch-target bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700"
             >
               Confirm Location
             </button>

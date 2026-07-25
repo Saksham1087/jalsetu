@@ -1,14 +1,11 @@
 import { useState, useMemo } from 'react'
 import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
 import { AdminComplaintDetail } from './AdminComplaintDetail'
+import { statusConfig } from '../../lib/statusConfig'
 
-const statusColors = {
-  submitted: { bg: 'bg-yellow-100', text: 'text-yellow-800', dot: 'bg-yellow-500' },
-  acknowledged: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
-  in_progress: { bg: 'bg-indigo-100', text: 'text-indigo-800', dot: 'bg-indigo-500' },
-  resolved: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
-  rejected: { bg: 'bg-red-100', text: 'text-red-800', dot: 'bg-red-500' },
-}
+const statusColors = Object.fromEntries(
+  Object.entries(statusConfig).map(([key, v]) => [key, { bg: v.adminBg, text: v.adminText, dot: v.dot }])
+)
 
 export function AdminComplaints({ complaints, onUpdateStatus }) {
   const [search, setSearch] = useState('')
@@ -34,7 +31,7 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-4">
         <div className="flex flex-wrap gap-3">
           <div className="flex-1 min-w-[200px]">
             <input
@@ -42,14 +39,14 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search complaints..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-3 border border-border rounded-lg text-sm bg-card"
             />
           </div>
           <div className="flex-1 min-w-[120px]">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-3 border border-border rounded-lg text-sm bg-card"
             >
               <option value="">All Statuses</option>
               <option value="submitted">Submitted</option>
@@ -63,7 +60,7 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
             <select
               value={wardFilter}
               onChange={(e) => setWardFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              className="w-full px-3 py-3 border border-border rounded-lg text-sm bg-card"
             >
               <option value="">All Wards</option>
               {MIRA_BHAYANDER.wards.map(w => (
@@ -74,22 +71,22 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-card rounded-xl shadow-sm border border-border">
         {filteredComplaints.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-text-secondary">
             {Array.isArray(complaints) && complaints.length === 0
               ? 'No complaints found.'
               : 'No complaints match the current filters.'}
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-divider">
             {filteredComplaints.map(complaint => {
               const sc = statusColors[complaint.status] || statusColors.submitted
               return (
                 <div
                   key={complaint.id}
                   onClick={() => setSelectedComplaint(complaint)}
-                  className="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="px-4 py-3 hover:bg-surface transition-colors cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -99,17 +96,17 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
                           {complaint.status?.replace('_', ' ') || 'Unknown'}
                         </span>
                         {complaint.ward && (
-                          <span className="text-xs text-gray-400">{complaint.ward}</span>
+                          <span className="text-xs text-text-tertiary">{complaint.ward}</span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-900 font-medium truncate">
+                      <p className="text-sm text-text-primary font-medium truncate">
                         {complaint.description || 'No description'}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-text-secondary mt-0.5">
                         {complaint.userName || 'Anonymous'} · {new Date(complaint.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    <span className="text-xs text-gray-400 capitalize mt-1 flex-shrink-0">
+                    <span className="text-xs text-text-tertiary capitalize mt-1 flex-shrink-0">
                       {complaint.type?.replace(/_/g, ' ') || 'N/A'}
                     </span>
                   </div>

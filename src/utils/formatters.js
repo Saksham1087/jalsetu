@@ -24,17 +24,6 @@ export function formatDate(dateString) {
   })
 }
 
-export function formatDateTime(dateString) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 export function formatType(type) {
   if (!type) return 'Water Complaint'
   return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
@@ -51,8 +40,4 @@ export function formatDistance(meters) {
   return `${(meters / 1000).toFixed(1)} km`
 }
 
-export function formatNumber(num) {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-  return num.toString()
-}
+

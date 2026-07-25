@@ -1,121 +1,174 @@
-import { formatRelativeTime, formatDate, formatType, formatStatus, formatDistance } from '../utils/formatters'
-import { calculateDistance } from '../utils/geo'
+import { formatRelativeTime, formatType, formatStatus } from '../utils/formatters'
+import { statusConfig } from '../lib/statusConfig'
+
+const TypeIcon = ({ type, className = 'w-5 h-5' }) => {
+  const icons = {
+    leakage: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-2.5 4.5-7.5 9-7.5 13.5a7.5 7.5 0 0015 0c0-4.5-5-9-7.5-13.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5z" />
+      </svg>
+    ),
+    critical_leak: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-2.5 4.5-7.5 9-7.5 13.5a7.5 7.5 0 0015 0c0-4.5-5-9-7.5-13.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5z" />
+      </svg>
+    ),
+    contamination: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+      </svg>
+    ),
+    low_pressure: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+      </svg>
+    ),
+    no_supply: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <circle cx="12" cy="12" r="9" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12h7.5" />
+      </svg>
+    ),
+    billing: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    other: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+      </svg>
+    ),
+  }
+  return icons[type] || icons.other
+}
 
 export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
-  const statusConfig = {
-    submitted: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Submitted' },
-    acknowledged: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Acknowledged' },
-    in_progress: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: 'In Progress' },
-    resolved: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', label: 'Resolved' },
-    rejected: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Rejected' },
-  }
-
-  const typeIcons = {
-    leakage: '💧',
-    contamination: '⚠️',
-    low_pressure: '📉',
-    no_supply: '🚫',
-    billing: '💰',
-    other: '📝',
-  }
 
   const config = statusConfig[complaint.status] || statusConfig.submitted
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="detail-title">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <h2 id="detail-title" className="text-lg font-semibold text-gray-900">Complaint Details</h2>
-          <button onClick={onClose} className="touch-target p-1 text-gray-400 hover:text-gray-600" aria-label="Close">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+    <div className="fixed inset-0 z-[1100] flex items-end sm:items-center justify-center sm:p-4 bg-overlay backdrop-blur-sm animate-fade-in" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="detail-title">
+      <div className="bg-card rounded-t-2xl sm:rounded-2xl max-w-lg w-full max-h-[90dvh] overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-card border-b border-border/60 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-header flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+              </svg>
+            </div>
+            <h2 id="detail-title" className="font-display text-base font-semibold text-text-primary">Complaint Detail</h2>
+          </div>
+          <button onClick={onClose} className="touch-target p-1.5 rounded-lg text-text-tertiary hover:bg-surface" aria-label="Close">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-60px)]">
-          <div className={`p-3 rounded-lg border ${config.bg} ${config.border}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl" aria-hidden="true">{typeIcons[complaint.type] || '📝'}</span>
-                <div>
-                  <h3 className="font-medium text-gray-900">{formatType(complaint.type)}</h3>
-                  <p className="text-sm text-gray-500">{complaint.address || complaint.landmark || 'Location not specified'}</p>
+        <div className="overflow-y-auto max-h-[calc(90dvh-60px)]">
+          <div className="relative overflow-hidden">
+            <div
+              className="h-2 w-full transition-colors duration-500"
+              style={{ backgroundColor: config.gaugeColor }}
+            />
+            <div className="p-4 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-teal-600 flex-shrink-0" aria-hidden="true">
+                    <TypeIcon type={complaint.type} className="w-6 h-6" />
+                  </span>
+                  <div>
+                    <h3 className="font-display font-semibold text-text-primary">{formatType(complaint.type)}</h3>
+                    <p className="text-sm text-text-secondary">{complaint.address || complaint.landmark || 'Location not specified'}</p>
+                  </div>
                 </div>
+                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${config.badgeBg} ${config.badgeText} whitespace-nowrap tracking-tight`}>
+                  {config.label}
+                </span>
               </div>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.text} ${config.bg} ${config.border} whitespace-nowrap`}>
-                {config.label}
-              </span>
-            </div>
-          </div>
 
-          <div>
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Description</h4>
-            <p className="text-gray-700 text-sm whitespace-pre-wrap">{complaint.description}</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {complaint.ward && (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-500">Ward / Area</p>
-                <p className="text-sm font-medium text-gray-900">{complaint.ward}</p>
+              <div className="bg-surface rounded-xl p-4">
+                <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Description</h4>
+                <p className="text-sm text-text-body/80 whitespace-pre-wrap leading-relaxed">{complaint.description}</p>
               </div>
-            )}
-            {complaint.landmark && (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-500">Landmark</p>
-                <p className="text-sm font-medium text-gray-900">{complaint.landmark}</p>
-              </div>
-            )}
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Reported</p>
-              <p className="text-sm font-medium text-gray-900">{formatRelativeTime(complaint.createdAt)}</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Updated</p>
-              <p className="text-sm font-medium text-gray-900">{formatRelativeTime(complaint.updatedAt)}</p>
-            </div>
-          </div>
 
-          {complaint.images && complaint.images.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Photos ({complaint.images.length})</h4>
               <div className="grid grid-cols-2 gap-2">
-                {complaint.images.slice(0, 4).map((img, i) => (
-                  <img key={i} src={img} alt={`Complaint photo ${i + 1}`} className="w-full aspect-square object-cover rounded-lg" loading="lazy" />
-                ))}
-                {complaint.images.length > 4 && (
-                  <div className="col-span-2 aspect-square rounded-lg bg-gray-100 flex items-center justify-center text-sm text-gray-500 border border-dashed border-gray-300">
-                    +{complaint.images.length - 4} more photos
+                {complaint.ward && (
+                  <div className="bg-surface rounded-xl p-3">
+                    <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Ward</p>
+                    <p className="text-sm font-medium text-text-primary">{complaint.ward}</p>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-
-          {complaint.timeline && complaint.timeline.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Timeline</h4>
-              <div className="space-y-3">
-                {complaint.timeline.map((event, index) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="flex flex-col items-center flex-shrink-0">
-                      <div className={`w-2.5 h-2.5 rounded-full ${index === 0 ? 'bg-primary-500' : 'bg-gray-300'}`} />
-                      {index < complaint.timeline.length - 1 && <div className="w-0.5 h-full bg-gray-200 mt-1" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{event.note || formatStatus(event.status)}</p>
-                      <p className="text-xs text-gray-500">{formatRelativeTime(event.timestamp)}</p>
-                    </div>
+                {complaint.landmark && (
+                  <div className="bg-surface rounded-xl p-3">
+                    <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Landmark</p>
+                    <p className="text-sm font-medium text-text-primary">{complaint.landmark}</p>
                   </div>
-                ))}
+                )}
+                <div className="bg-surface rounded-xl p-3">
+                  <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Reported</p>
+                  <p className="text-sm font-medium text-text-primary">{formatRelativeTime(complaint.createdAt)}</p>
+                </div>
+                <div className="bg-surface rounded-xl p-3">
+                  <p className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Updated</p>
+                  <p className="text-sm font-medium text-text-primary">{formatRelativeTime(complaint.updatedAt)}</p>
+                </div>
               </div>
-            </div>
-          )}
 
-          <div className="pt-4 border-t border-gray-200 flex gap-2">
+              {complaint.images && complaint.images.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Photos ({complaint.images.length})</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {complaint.images.slice(0, 4).map((img, i) => (
+                      <img key={i} src={img} alt={`Photo ${i + 1}`} className="w-full aspect-square object-cover rounded-xl" loading="lazy" />
+                    ))}
+                    {complaint.images.length > 4 && (
+                      <div className="col-span-2 aspect-[2/1] rounded-xl bg-surface flex items-center justify-center text-sm text-text-tertiary border border-dashed border-border font-medium">
+                        +{complaint.images.length - 4} more photos
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {complaint.timeline && complaint.timeline.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">Timeline</h4>
+                  <div className="space-y-3">
+                    {complaint.timeline.map((event, index) => (
+                      <div key={index} className="flex gap-3">
+                        <div className="flex flex-col items-center flex-shrink-0">
+                          <div
+                            className="w-3 h-3 rounded-full border-2"
+                            style={{
+                              backgroundColor: index === 0 ? config.gaugeColor : 'var(--color-card)',
+                              borderColor: config.gaugeColor,
+                            }}
+                          />
+                          {index < complaint.timeline.length - 1 && (
+                            <div className="w-0.5 flex-1 mt-1" style={{ backgroundColor: config.gaugeColor + '20' }} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 pb-3">
+                          <p className="text-sm font-medium text-text-primary">{event.note || formatStatus(event.status)}</p>
+                          <p className="text-xs text-text-secondary mt-0.5">{formatRelativeTime(event.timestamp)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="sticky bottom-0 bg-card border-t border-border/60 p-4 flex gap-2">
             {complaint.status !== 'resolved' && complaint.status !== 'rejected' && (
               <button
                 onClick={() => onUpdateStatus(complaint.id, 'acknowledged')}
-                className="flex-1 touch-target border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+                className="flex-1 touch-target py-2.5 border border-teal-600/30 text-teal-700 font-medium rounded-xl hover:bg-teal-50 transition-colors text-sm"
               >
                 Acknowledge
               </button>
@@ -123,7 +176,7 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
             {complaint.status === 'acknowledged' && (
               <button
                 onClick={() => onUpdateStatus(complaint.id, 'in_progress')}
-                className="flex-1 touch-target bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700"
+                className="flex-1 touch-target py-2.5 bg-brass-400 text-white font-medium rounded-xl hover:bg-brass-500 transition-colors text-sm"
               >
                 Start Work
               </button>
@@ -131,14 +184,14 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
             {complaint.status === 'in_progress' && (
               <button
                 onClick={() => onUpdateStatus(complaint.id, 'resolved')}
-                className="flex-1 touch-target bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
+                className="flex-1 touch-target py-2.5 bg-resolved text-white font-medium rounded-xl hover:bg-green-700 transition-colors text-sm"
               >
                 Mark Resolved
               </button>
             )}
             <button
               onClick={onClose}
-              className="flex-1 touch-target bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700"
+              className="flex-1 touch-target py-2.5 bg-deep-800 text-white font-medium rounded-xl hover:bg-deep-900 transition-colors text-sm"
             >
               Close
             </button>

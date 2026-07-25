@@ -1,11 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 export function useLocation() {
   const [location, setLocation] = useState(null)
   const [error, setError] = useState(null)
   const [permission, setPermission] = useState('prompt')
-  const [watching, setWatching] = useState(false)
-  const watchIdRef = useRef(null)
 
   const checkPermission = useCallback(async () => {
     if (!navigator.permissions) return
@@ -65,40 +63,6 @@ export function useLocation() {
     })
   }, [])
 
-  const watchLocation = useCallback((options = {}) => {
-    if (!navigator.geolocation || watching) return
-
-    const defaultOptions = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 60000,
-    }
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const loc = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-          timestamp: pos.timestamp,
-        }
-        setLocation(loc)
-        setError(null)
-      },
-      (err) => console.warn('Watch position error:', err),
-      { ...defaultOptions, ...options }
-    )
-    setWatching(true)
-  }, [watching])
-
-  const stopWatching = useCallback(() => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current)
-      watchIdRef.current = null
-      setWatching(false)
-    }
-  }, [])
-
   const requestPermission = useCallback(async () => {
     if (!navigator.geolocation) return false
     try {
@@ -111,17 +75,13 @@ export function useLocation() {
 
   useEffect(() => {
     checkPermission()
-    return () => stopWatching()
-  }, [checkPermission, stopWatching])
+  }, [checkPermission])
 
   return {
     location,
     error,
     permission,
-    watching,
     getCurrentLocation,
-    watchLocation,
-    stopWatching,
     requestPermission,
   }
 }

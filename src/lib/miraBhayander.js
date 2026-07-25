@@ -53,24 +53,6 @@ export const MIRA_BHAYANDER = {
   ],
 }
 
-export function getWardName(wardId) {
-  const ward = MIRA_BHAYANDER.wards.find(w => w.id === wardId)
-  return ward ? ward.name : null
-}
-
 export function getWardById(wardId) {
   return MIRA_BHAYANDER.wards.find(w => w.id === wardId) || null
-}
-
-export function formatSchedule(schedule) {
-  if (!schedule) {
-    schedule = MIRA_BHAYANDER.defaultSchedule
-  }
-  return `${schedule.morning.start}–${schedule.morning.end} AM and ${schedule.evening.start}–${schedule.evening.end} PM`
-}
-
-export function isInMiraBhayander(lat, lng) {
-  const [south, west] = MIRA_BHAYANDER.bounds[0]
-  const [north, east] = MIRA_BHAYANDER.bounds[1]
-  return lat >= south && lat <= north && lng >= west && lng <= east
 }
