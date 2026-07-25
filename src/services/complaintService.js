@@ -4,7 +4,8 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 const getComplaints = () => {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    return all.filter(c => !c.deleted)
   } catch {
     return []
   }
@@ -23,6 +24,16 @@ export const complaintService = {
     return complaints.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   },
 
+  async getAllDeleted() {
+    await delay(300)
+    try {
+      const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      return all.filter(c => c.deleted).sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt))
+    } catch {
+      return []
+    }
+  },
+
   async create(data) {
     await delay(500)
     const complaints = getComplaints()
@@ -30,6 +41,9 @@ export const complaintService = {
       id: generateId(),
       ...data,
       status: 'submitted',
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       images: data.images || [],
@@ -64,6 +78,36 @@ export const complaintService = {
     complaints[index] = updated
     saveComplaints(complaints)
     return updated
+  },
+
+  async softDelete(id, adminUid) {
+    await delay(300)
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    const index = all.findIndex(c => c.id === id)
+    if (index === -1) throw new Error('Complaint not found')
+    all[index] = {
+      ...all[index],
+      deleted: true,
+      deletedAt: new Date().toISOString(),
+      deletedBy: adminUid,
+    }
+    saveComplaints(all)
+    return all[index]
+  },
+
+  async restore(id) {
+    await delay(300)
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    const index = all.findIndex(c => c.id === id)
+    if (index === -1) throw new Error('Complaint not found')
+    all[index] = {
+      ...all[index],
+      deleted: false,
+      deletedAt: null,
+      deletedBy: null,
+    }
+    saveComplaints(all)
+    return all[index]
   },
 
   seedDemoData() {

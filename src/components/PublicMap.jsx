@@ -339,8 +339,6 @@ return (
         zoom={zoom}
         zoomControl={false}
         attributionControl={false}
-        maxBounds={MIRA_BHAYANDER.bounds}
-        maxBoundsViscosity={1.0}
         className="absolute inset-0"
         whenCreated={(map) => {
           mapRef.current = map

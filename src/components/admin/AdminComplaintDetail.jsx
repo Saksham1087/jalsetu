@@ -15,12 +15,14 @@ const NEXT_STATUS = {
   rejected: 'rejected',
 }
 
-export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
+export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDelete }) {
   const defaultStatus = NEXT_STATUS[complaint?.status] || complaint?.status || ''
   const [selectedStatus, setSelectedStatus] = useState(defaultStatus)
   const [note, setNote] = useState('')
   const [updating, setUpdating] = useState(false)
   const [updateError, setUpdateError] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   if (!complaint) return null
 
@@ -36,6 +38,18 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
       setUpdateError(err.message || 'Failed to update status')
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await onDelete(complaint.id)
+      onClose()
+    } catch (err) {
+      setUpdateError(err.message || 'Failed to delete complaint')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -181,6 +195,41 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus }) {
               </button>
             </div>
           </div>
+
+          {/* Delete Complaint */}
+          <div className="border-t border-border pt-4">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full py-2 bg-red-50 border border-red-200 text-red-700 font-medium rounded-lg hover:bg-red-100 transition-colors text-sm"
+            >
+              Delete Complaint
+            </button>
+          </div>
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 z-50 bg-overlay flex items-center justify-center p-4" onClick={() => setShowDeleteConfirm(false)}>
+              <div className="bg-card rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-semibold text-text-primary mb-2">Delete Complaint?</h3>
+                <p className="text-text-secondary text-sm mb-4">This complaint will be hidden from all views. You can restore it later from the Deleted section.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex-1 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm"
+                  >
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-4 py-2 bg-surface text-text-body font-medium rounded-lg hover:bg-surface/80 transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

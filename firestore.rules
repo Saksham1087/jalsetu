@@ -12,10 +12,10 @@ service cloud.firestore {
       // Anyone authenticated can read all complaints
       allow read: if request.auth != null;
       
-      // Complainant can update their own complaint; admins can update any
+      // Complainant can update their own complaint; admins can update any (including delete fields)
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'updatedAt', 'timeline'])
+          .hasOnly(['status', 'updatedAt', 'timeline', 'deleted', 'deletedAt', 'deletedBy'])
         && (
           resource.data.userId == request.auth.uid
           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'

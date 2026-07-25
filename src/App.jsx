@@ -13,7 +13,7 @@ import { useComplaints } from './hooks/useComplaints'
 import { useLocation } from './hooks/useLocation'
 import { useTheme } from './hooks/useTheme'
 import { AuthProvider, useAuthContext } from './contexts/AuthContext'
-import { subscribeToAllComplaints, updateComplaintStatus } from './services/firestore'
+import { subscribeToAllComplaints, subscribeToDeletedComplaints, updateComplaintStatus, softDeleteComplaint, restoreComplaint } from './services/firestore'
 import { appConfig } from './lib/config'
 import { complaintService } from './services/complaintService'
 
@@ -22,6 +22,7 @@ function AppInner() {
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [route, setRoute] = useState('main')
   const [adminComplaints, setAdminComplaints] = useState([])
+  const [deletedComplaints, setDeletedComplaints] = useState([])
   
   const { location, error: locationError, requestPermission } = useLocation()
   const { user, loading: authLoading, login, logout, userRole, refreshRole } = useAuthContext()
@@ -75,7 +76,12 @@ function AppInner() {
       (err) => console.error('Admin subscription error:', err)
     )
 
-    return () => unsubscribe()
+    const unsubscribeDeleted = subscribeToDeletedComplaints(
+      (data) => setDeletedComplaints(data),
+      (err) => console.error('Deleted complaints subscription error:', err)
+    )
+
+    return () => { unsubscribe(); unsubscribeDeleted() }
   }, [route, user, userRole])
 
   const handleLogin = useCallback(async () => {
@@ -95,6 +101,26 @@ function AppInner() {
       return
     }
     await updateComplaintStatus(id, status, note)
+  }, [])
+
+  const handleComplaintDelete = useCallback(async (complaintId) => {
+    if (!appConfig.hasFirebase) {
+      await complaintService.softDelete(complaintId, user?.uid || 'admin')
+      setAdminComplaints(complaintService.getAll())
+      setDeletedComplaints(complaintService.getAllDeleted())
+      return
+    }
+    await softDeleteComplaint(complaintId, user?.uid)
+  }, [user])
+
+  const handleComplaintRestore = useCallback(async (complaintId) => {
+    if (!appConfig.hasFirebase) {
+      await complaintService.restore(complaintId)
+      setAdminComplaints(complaintService.getAll())
+      setDeletedComplaints(complaintService.getAllDeleted())
+      return
+    }
+    await restoreComplaint(complaintId)
   }, [])
 
   const handleLocationPermission = useCallback(async () => {
@@ -136,7 +162,10 @@ function AppInner() {
     return (
       <AdminLayout
         complaints={adminComplaints}
+        deletedComplaints={deletedComplaints}
         onUpdateStatus={handleStatusUpdate}
+        onDelete={handleComplaintDelete}
+        onRestore={handleComplaintRestore}
         onNavigateHome={handleNavigateHome}
       />
     )

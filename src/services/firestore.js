@@ -4,6 +4,7 @@ import {
   updateDoc, 
   doc, 
   query, 
+  where,
   orderBy, 
   onSnapshot, 
   getDocs,
@@ -37,6 +38,9 @@ function createComplaintData(user, input) {
     mobile: input.mobile || null,
     createdAt: serverTimestamp(),
     status: 'submitted',
+    deleted: false,
+    deletedAt: null,
+    deletedBy: null,
     timeline: [
       { status: 'submitted', timestamp: new Date(), note: 'Complaint submitted' }
     ]
@@ -74,7 +78,7 @@ export function subscribeToAllComplaints(callback, errorCallback) {
     collection(db, COLLECTION),
     orderBy('createdAt', 'desc')
   )
-  
+
   return onSnapshot(q, (snapshot) => {
     const complaints = snapshot.docs.map(doc => {
       const data = doc.data()
@@ -87,7 +91,7 @@ export function subscribeToAllComplaints(callback, errorCallback) {
           timestamp: entry.timestamp?.toDate?.() || entry.timestamp,
         })),
       }
-    })
+    }).filter(c => !c.deleted)
     callback(complaints)
   }, (error) => {
     console.error('Complaints subscription error:', error)
@@ -103,7 +107,59 @@ export async function getAllComplaints() {
     id: doc.id,
     ...doc.data(),
     createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-  }))
+  })).filter(c => !c.deleted)
+}
+
+export async function softDeleteComplaint(complaintId, adminUid) {
+  if (!db) throw new Error('Firestore not initialized')
+  const ref = doc(db, COLLECTION, complaintId)
+  await updateDoc(ref, {
+    deleted: true,
+    deletedAt: serverTimestamp(),
+    deletedBy: adminUid,
+  })
+}
+
+export async function restoreComplaint(complaintId) {
+  if (!db) throw new Error('Firestore not initialized')
+  const ref = doc(db, COLLECTION, complaintId)
+  await updateDoc(ref, {
+    deleted: false,
+    deletedAt: null,
+    deletedBy: null,
+  })
+}
+
+export function subscribeToDeletedComplaints(callback, errorCallback) {
+  if (!db) {
+    errorCallback?.(new Error('Firestore not initialized'))
+    return () => {}
+  }
+
+  const q = query(
+    collection(db, COLLECTION),
+    orderBy('createdAt', 'desc')
+  )
+
+  return onSnapshot(q, (snapshot) => {
+    const complaints = snapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || data.createdAt,
+        deletedAt: data.deletedAt?.toDate?.() || data.deletedAt,
+        timeline: (data.timeline || []).map(entry => ({
+          ...entry,
+          timestamp: entry.timestamp?.toDate?.() || entry.timestamp,
+        })),
+      }
+    }).filter(c => c.deleted)
+    callback(complaints)
+  }, (error) => {
+    console.error('Deleted complaints subscription error:', error)
+    errorCallback?.(error)
+  })
 }
 
 
