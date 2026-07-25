@@ -7,6 +7,9 @@ export const statusConfig = {
     badgeText: 'text-white',
     cardAccent: 'border-l-deep-800',
     icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+    dot: 'bg-deep-500',
+    adminBg: 'bg-deep-800',
+    adminText: 'text-white',
   },
   acknowledged: {
     label: 'Acknowledged',
@@ -16,6 +19,9 @@ export const statusConfig = {
     badgeText: 'text-white',
     cardAccent: 'border-l-teal-600',
     icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+    dot: 'bg-teal-500',
+    adminBg: 'bg-teal-600',
+    adminText: 'text-white',
   },
   in_progress: {
     label: 'In Progress',
@@ -25,6 +31,9 @@ export const statusConfig = {
     badgeText: 'text-white',
     cardAccent: 'border-l-brass-400',
     icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+    dot: 'bg-brass-500',
+    adminBg: 'bg-brass-400',
+    adminText: 'text-white',
   },
   resolved: {
     label: 'Resolved',
@@ -34,6 +43,9 @@ export const statusConfig = {
     badgeText: 'text-white',
     cardAccent: 'border-l-resolved',
     icon: 'M5 13l4 4L19 7',
+    dot: 'bg-success-500',
+    adminBg: 'bg-resolved',
+    adminText: 'text-white',
   },
   rejected: {
     label: 'Rejected',
@@ -43,5 +55,8 @@ export const statusConfig = {
     badgeText: 'text-white',
     cardAccent: 'border-l-emergency',
     icon: 'M6 18L18 6M6 6l12 12',
+    dot: 'bg-danger-500',
+    adminBg: 'bg-emergency',
+    adminText: 'text-white',
   },
 }

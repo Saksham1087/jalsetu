@@ -12,11 +12,15 @@ service cloud.firestore {
       // Anyone authenticated can read all complaints
       allow read: if request.auth != null;
       
-      // Users can only update their own complaints (status changes)
+      // Complainant can update their own complaint; admins can update any
       allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'updatedAt', 'timeline']);
+          .hasOnly(['status', 'updatedAt', 'timeline'])
+        && (
+          resource.data.userId == request.auth.uid
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+          || request.auth.token.email == 'raisakshamclg@gmail.com'
+        );
       
       // Users cannot delete complaints (only admins via backend)
       allow delete: if false;

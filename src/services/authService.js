@@ -40,7 +40,7 @@ export async function getUserRole(uid) {
   return 'citizen'
 }
 
-async function setUserRole(uid, role = 'citizen') {
+export async function setUserRole(uid, role = 'citizen') {
   if (!appConfig.hasFirebase || !db) return
   const userRef = doc(db, 'users', uid)
   const snap = await getDoc(userRef)

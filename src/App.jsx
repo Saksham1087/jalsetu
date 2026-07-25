@@ -90,15 +90,11 @@ function AppInner() {
 
   const handleStatusUpdate = useCallback(async (id, status, note) => {
     if (!appConfig.hasFirebase) {
-      try {
-        complaintService.update(id, { status, ...(note && { timeline: [{ status, timestamp: new Date(), note }] }) })
-        setAdminComplaints(complaintService.getAll())
-      } catch (err) { alert(err.message) }
+      complaintService.update(id, { status, ...(note && { timeline: [{ status, timestamp: new Date(), note }] }) })
+      setAdminComplaints(complaintService.getAll())
       return
     }
-    try {
-      await updateComplaintStatus(id, status, note)
-    } catch (err) { alert(err.message) }
+    await updateComplaintStatus(id, status, note)
   }, [])
 
   const handleLocationPermission = useCallback(async () => {

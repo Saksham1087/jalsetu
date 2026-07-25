@@ -76,11 +76,18 @@ export function subscribeToAllComplaints(callback, errorCallback) {
   )
   
   return onSnapshot(q, (snapshot) => {
-    const complaints = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-    }))
+    const complaints = snapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate?.() || data.createdAt,
+        timeline: (data.timeline || []).map(entry => ({
+          ...entry,
+          timestamp: entry.timestamp?.toDate?.() || entry.timestamp,
+        })),
+      }
+    })
     callback(complaints)
   }, (error) => {
     console.error('Complaints subscription error:', error)

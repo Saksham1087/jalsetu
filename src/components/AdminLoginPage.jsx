@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuthContext } from '../contexts/AuthContext'
-import { loginWithGoogleAdmin } from '../services/authService'
+import { loginWithGoogleAdmin, setUserRole } from '../services/authService'
 import { appConfig } from '../lib/config'
 import { useTheme } from '../hooks/useTheme'
 
@@ -32,7 +32,11 @@ export function AdminLoginPage({ onNavigateHome }) {
     setLoading(true)
     try {
       if (appConfig.hasFirebase) {
-        await loginWithEmail(email, password)
+        const loginUser = await loginWithEmail(email, password)
+        if (loginUser && loginUser.email?.toLowerCase() === 'raisakshamclg@gmail.com') {
+          await setUserRole(loginUser.uid, 'admin')
+          if (refreshRole) await refreshRole()
+        }
       } else {
         if (email === 'raisakshamclg@gmail.com' && password === 'admin123') {
           window.location.hash = '#/admin'
