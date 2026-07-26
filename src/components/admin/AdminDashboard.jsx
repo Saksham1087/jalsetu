@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
 import { statusConfig } from '../../lib/statusConfig'
+import { formatType } from '../../utils/formatters'
 
 const statusColors = Object.fromEntries(
   Object.entries(statusConfig).map(([key, v]) => [key, { bg: v.adminBg, text: v.adminText, dot: v.dot }])
@@ -12,12 +13,13 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
 
   const stats = useMemo(() => {
     const arr = Array.isArray(complaints) ? complaints : []
-    const counts = { total: arr.length, pending: 0, acknowledged: 0, inProgress: 0, resolved: 0 }
+    const counts = { total: arr.length, pending: 0, acknowledged: 0, inProgress: 0, resolved: 0, rejected: 0 }
     for (const c of arr) {
       if (c.status === 'submitted') counts.pending++
       else if (c.status === 'acknowledged') counts.acknowledged++
       else if (c.status === 'in_progress') counts.inProgress++
       else if (c.status === 'resolved') counts.resolved++
+      else if (c.status === 'rejected') counts.rejected++
     }
     return counts
   }, [complaints])
@@ -34,8 +36,10 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
   const statCards = [
     { label: 'Total', value: stats.total, color: 'bg-gray-500' },
     { label: 'Pending', value: stats.pending, color: 'bg-yellow-500' },
+    { label: 'Acknowledged', value: stats.acknowledged, color: 'bg-teal-500' },
     { label: 'In Progress', value: stats.inProgress, color: 'bg-indigo-500' },
     { label: 'Resolved', value: stats.resolved, color: 'bg-green-500' },
+    { label: 'Rejected', value: stats.rejected, color: 'bg-red-500' },
   ]
 
   return (
@@ -80,7 +84,7 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
             >
               <option value="">All Wards</option>
               {MIRA_BHAYANDER.wards.map(w => (
-                <option key={w.id} value={w.name}>{w.name}</option>
+                <option key={w.id} value={w.name}>{w.name} — {w.area}</option>
               ))}
             </select>
           </div>
@@ -118,7 +122,7 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
                       <p className="text-sm text-text-primary font-medium truncate">{complaint.description}</p>
                       <div className="flex items-center gap-3 mt-1 text-xs text-text-secondary">
                         {complaint.ward && <span>Ward: {complaint.ward}</span>}
-                        <span>{complaint.type || complaint.severity}</span>
+                        <span>{formatType(complaint.type || complaint.severity)}</span>
                         {complaint.userName && <span>by {complaint.userName}</span>}
                       </div>
                     </div>

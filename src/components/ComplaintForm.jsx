@@ -96,13 +96,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
       reverseGeocode(location.latitude, location.longitude)
       setGeoInitAttempted(true)
     }
-  }, [location])
-
-  useEffect(() => {
-    if (showMap && mapRef.current && !mapInstanceRef.current) {
-      initMap()
-    }
-  }, [showMap])
+  }, [location, formData.latitude, geoInitAttempted])
 
   const initMap = async () => {
     try {
@@ -188,6 +182,12 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
     }
   }
 
+  useEffect(() => {
+    if (showMap && mapRef.current && !mapInstanceRef.current) {
+      initMap()
+    }
+  }, [showMap])
+
   const reverseGeocode = async (lat, lng) => {
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
@@ -244,7 +244,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         mapInstanceRef.current.setView(latlng, 17)
         mapInstanceRef.current.invalidateSize()
       }
-    } catch (err) {
+    } catch {
       setErrors(prev => ({ ...prev, location: 'Unable to get location. Please enable location access.' }))
     }
   }, [getCurrentLocation])
@@ -275,7 +275,6 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                   setUploading(false)
                   return
                 }
-                // Cloudinary failed — fall back to local resize
                 try {
                   let dataUrl
                   try {
@@ -314,7 +313,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         dataUrl = await fileToDataUrl(file)
       }
       setFormData(prev => ({ ...prev, images: [dataUrl] }))
-    } catch (err) {
+    } catch {
       setErrors(prev => ({ ...prev, photo: 'Could not upload photo. Please try a different image or skip this step.' }))
     } finally {
       setUploading(false)

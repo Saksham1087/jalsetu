@@ -4,7 +4,6 @@ import {
   updateDoc, 
   doc, 
   query, 
-  where,
   orderBy, 
   onSnapshot, 
   getDocs,

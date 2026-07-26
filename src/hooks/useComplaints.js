@@ -74,7 +74,7 @@ export function useComplaints(userLocation, user) {
     }
     const all = await getAllComplaints()
     setComplaints(normalizeData(all))
-  }, [user])
+  }, [])
 
   return {
     complaints,

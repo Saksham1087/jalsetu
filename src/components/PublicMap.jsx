@@ -68,18 +68,18 @@ function createPopupContent(complaint) {
   const date = new Date(complaint.createdAt?.toDate ? complaint.createdAt.toDate() : complaint.createdAt)
 
   return `
-    <div style="padding: 8px; font-family: system-ui, sans-serif; font-size: 14px; color: var(--color-text-primary);">
+    <div style="padding: 8px; font-family: system-ui, sans-serif; font-size: 14px; color: #1f2937;">
       <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
         <h4 style="font-weight: 600; font-size: 14px; flex: 1; padding-right: 8px; margin: 0;">${label}</h4>
         <span style="padding: 2px 8px; font-size: 12px; font-weight: 500; border-radius: 9999px; white-space: nowrap; flex-shrink: 0; background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">
           ${label}
         </span>
       </div>
-      <p style="font-size: 14px; color: var(--color-text-body); margin: 0 0 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${complaint.description || 'No description'}</p>
-      ${complaint.address ? `<p style="font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; display: flex; align-items: center; gap: 4px;"><svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>${complaint.address.slice(0, 60)}${complaint.address.length > 60 ? '...' : ''}</p>` : ''}
-      ${complaint.ward ? `<p style="font-size: 12px; color: var(--color-text-secondary); margin: 0 0 4px; display: flex; align-items: center; gap: 4px;"><svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>${complaint.ward}</p>` : ''}
-      <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--color-border); margin-top: 4px;">
-        <span style="font-size: 12px; color: var(--color-text-tertiary); flex: 1;">${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+      <p style="font-size: 14px; color: #4b5563; margin: 0 0 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${complaint.description || 'No description'}</p>
+      ${complaint.address ? `<p style="font-size: 12px; color: #6b7280; margin: 0 0 4px; display: flex; align-items: center; gap: 4px;"><svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>${complaint.address.slice(0, 60)}${complaint.address.length > 60 ? '...' : ''}</p>` : ''}
+      ${complaint.ward ? `<p style="font-size: 12px; color: #6b7280; margin: 0 0 4px; display: flex; align-items: center; gap: 4px;"><svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>${complaint.ward}</p>` : ''}
+      <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; margin-top: 4px;">
+        <span style="font-size: 12px; color: #9ca3af; flex: 1;">${date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
         <button data-complaint-id="${complaint.id}" class="view-details-btn" style="width: 100%; padding: 6px 12px; background-color: #127A7A; color: white; font-size: 14px; font-weight: 500; border-radius: 8px; border: none; cursor: pointer;">View Details</button>
       </div>
     </div>
@@ -238,7 +238,7 @@ export function PublicMap({
     return () => unsub?.()
   }, [])
 
-  const rawComplaints = appConfig.hasFirebase ? fbComplaints : (propComplaints ?? [])
+  const rawComplaints = useMemo(() => appConfig.hasFirebase ? fbComplaints : (propComplaints ?? []), [fbComplaints, propComplaints])
   const isLoading = appConfig.hasFirebase ? fbLoading : (propLoading ?? false)
   const displayError = appConfig.hasFirebase ? fbError : null
 

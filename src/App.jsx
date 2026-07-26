@@ -59,7 +59,7 @@ function AppInner() {
     if (route === 'admin' && user && !user.isDemoUser && !userRole) {
       refreshRole?.()
     }
-  }, [route, user, userRole])
+  }, [route, user, userRole, refreshRole])
 
   useEffect(() => {
     const isAdminUser = user && (userRole === 'admin' || (user.isDemoUser && user.role === 'citizen'))
@@ -72,12 +72,22 @@ function AppInner() {
     }
 
     const unsubscribe = subscribeToAllComplaints(
-      (data) => setAdminComplaints(data),
+      (data) => setAdminComplaints(data.map(c => ({
+        ...c,
+        latitude: c.latitude ?? c.lat ?? null,
+        longitude: c.longitude ?? c.lng ?? null,
+        images: Array.isArray(c.images) ? c.images : c.photoURL ? [c.photoURL] : [],
+      }))),
       (err) => console.error('Admin subscription error:', err)
     )
 
     const unsubscribeDeleted = subscribeToDeletedComplaints(
-      (data) => setDeletedComplaints(data),
+      (data) => setDeletedComplaints(data.map(c => ({
+        ...c,
+        latitude: c.latitude ?? c.lat ?? null,
+        longitude: c.longitude ?? c.lng ?? null,
+        images: Array.isArray(c.images) ? c.images : c.photoURL ? [c.photoURL] : [],
+      }))),
       (err) => console.error('Deleted complaints subscription error:', err)
     )
 

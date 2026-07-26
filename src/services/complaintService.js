@@ -117,7 +117,7 @@ export const complaintService = {
     const demoComplaints = [
       {
         id: generateId(),
-        type: 'leakage',
+        type: 'critical_leak',
         description: 'Major water leakage from main pipe near the community center. Water flowing on road causing traffic issues.',
         latitude: 19.2850,
         longitude: 72.8600,

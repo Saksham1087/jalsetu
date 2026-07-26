@@ -18,11 +18,12 @@ export function ChatWidget() {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
+        _read: true,
         text: "Hi! I'm JalSetu's assistant for **Mira Bhayander**. I can help with water supply timings (7–9 AM & PM daily), MBMC contacts, known issue areas, or filing a complaint. What's your water concern?",
         timestamp: new Date(),
       }])
     }
-  }, [isOpen])
+  }, [isOpen, messages.length])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -100,7 +101,12 @@ export function ChatWidget() {
     }
   }
 
-  const toggleChat = () => setIsOpen(!isOpen)
+  const toggleChat = () => {
+    if (!isOpen) {
+      setMessages(prev => prev.map(m => ({ ...m, _read: true })))
+    }
+    setIsOpen(!isOpen)
+  }
 
   return (
     <div ref={widgetRef} className="fixed z-[1200] bottom-20 right-4 transition-all duration-300">
@@ -119,9 +125,9 @@ export function ChatWidget() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         )}
-        {!isOpen && messages.some(m => m.role === 'assistant' && !m.read) && (
+        {!isOpen && messages.some(m => m.role === 'assistant' && !m._read) && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
-            1
+            {messages.filter(m => m.role === 'assistant' && !m._read).length}
           </span>
         )}
       </button>

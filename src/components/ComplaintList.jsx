@@ -4,6 +4,11 @@ import { FilterBar } from './FilterBar'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import { getDistance } from '../utils/geo'
 
+function normalizeType(type) {
+  if (type === 'critical_leak' || type === 'leakage') return 'critical_leak'
+  return type
+}
+
 export function ComplaintList({ complaints, loading, error, onRefresh, userLocation, user }) {
   const [filter, setFilter] = useState({
     type: '',
@@ -20,7 +25,7 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
   const sortedComplaints = useMemo(() => {
     const complaintsArray = Array.isArray(complaints) ? complaints : []
     let filtered = complaintsArray.filter(c => {
-      if (filter.type && c.type !== filter.type) return false
+      if (filter.type && normalizeType(c.type) !== normalizeType(filter.type)) return false
       if (filter.status && c.status !== filter.status) return false
       if (filter.ward && c.ward !== filter.ward) return false
       if (filter.myComplaintsOnly && user && c.userId !== user.uid) return false
@@ -53,7 +58,7 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
 
   const complaintTypes = [
     { value: '', label: 'All Types' },
-    { value: 'leakage', label: 'Leakage' },
+    { value: 'critical_leak', label: 'Critical Leak' },
     { value: 'contamination', label: 'Contamination' },
     { value: 'low_pressure', label: 'Low Pressure' },
     { value: 'no_supply', label: 'No Supply' },

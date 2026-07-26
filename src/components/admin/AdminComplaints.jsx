@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
 import { AdminComplaintDetail } from './AdminComplaintDetail'
 import { statusConfig } from '../../lib/statusConfig'
+import { formatType } from '../../utils/formatters'
 
 const statusColors = Object.fromEntries(
   Object.entries(statusConfig).map(([key, v]) => [key, { bg: v.adminBg, text: v.adminText, dot: v.dot }])
@@ -106,8 +107,8 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
                         {complaint.userName || 'Anonymous'} · {new Date(complaint.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    <span className="text-xs text-text-tertiary capitalize mt-1 flex-shrink-0">
-                      {complaint.type?.replace(/_/g, ' ') || 'N/A'}
+                    <span className="text-xs text-text-tertiary mt-1 flex-shrink-0">
+                      {formatType(complaint.type || 'N/A')}
                     </span>
                   </div>
                 </div>

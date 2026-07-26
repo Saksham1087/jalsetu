@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
+import { formatType } from '../../utils/formatters'
 
 export function AdminTrash({ deletedComplaints, onRestore }) {
   const [search, setSearch] = useState('')
@@ -84,8 +85,8 @@ export function AdminTrash({ deletedComplaints, onRestore }) {
                       {complaint.ward && (
                         <span className="text-xs text-text-tertiary">{complaint.ward}</span>
                       )}
-                      <span className="text-xs text-text-tertiary capitalize">
-                        {complaint.type?.replace(/_/g, ' ') || 'N/A'}
+                      <span className="text-xs text-text-tertiary">
+                        {formatType(complaint.type || 'N/A')}
                       </span>
                     </div>
                     <p className="text-sm text-text-primary font-medium truncate">

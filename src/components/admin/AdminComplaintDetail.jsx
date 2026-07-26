@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { statusConfig } from '../../lib/statusConfig'
+import { formatType } from '../../utils/formatters'
 
 const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, v]) => ({
   value,
@@ -87,7 +88,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <h3 className="text-sm font-medium text-text-secondary mb-1">Type</h3>
-              <p className="text-text-primary capitalize">{complaint.type || complaint.severity || 'N/A'}</p>
+              <p className="text-text-primary">{formatType(complaint.type || complaint.severity || 'N/A')}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-text-secondary mb-1">Ward</h3>
@@ -108,7 +109,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
             <div>
               <h3 className="text-sm font-medium text-text-secondary mb-1">Location</h3>
               <p className="text-text-primary text-sm">
-                {complaint.latitude?.toFixed(4)}, {complaint.longitude?.toFixed(4)}
+                {(complaint.latitude ?? complaint.lat)?.toFixed(4) ?? 'N/A'}, {(complaint.longitude ?? complaint.lng)?.toFixed(4) ?? 'N/A'}
               </p>
             </div>
           </div>

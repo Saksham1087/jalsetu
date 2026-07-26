@@ -16,10 +16,7 @@ export function BottomNav({ activeTab, onTabChange, user }) {
               <button
                 key={tab.id}
                 onClick={() => {
-                  if (tab.requiresAuth && !user) {
-                    onTabChange('report')
-                    return
-                  }
+                  if (tab.requiresAuth && !user) return
                   onTabChange(tab.id)
                 }}
                 className={`relative flex flex-col items-center justify-center gap-0.5 touch-target transition-colors ${
