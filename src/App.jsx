@@ -5,42 +5,53 @@ import { PublicMap } from './components/PublicMap'
 import { Header } from './components/Header'
 import { BottomNav } from './components/BottomNav'
 import { ComplaintDetail } from './components/ComplaintDetail'
+import { Dashboard } from './components/Dashboard'
+import { ProfilePage } from './components/ProfilePage'
+import { NotificationPanel } from './components/NotificationPanel'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { AdminLayout } from './components/admin/AdminLayout'
-import { TrackPage } from './components/TrackPage'
 
 const ChatWidget = lazy(() => import('./components/ChatWidget').then(m => ({ default: m.ChatWidget })))
 import { useComplaints } from './hooks/useComplaints'
 import { useLocation } from './hooks/useLocation'
 import { useTheme } from './hooks/useTheme'
+import { useNotifications } from './hooks/useNotifications'
 import { AuthProvider, useAuthContext } from './contexts/AuthContext'
 import { subscribeToAllComplaints, subscribeToDeletedComplaints, updateComplaintStatus, softDeleteComplaint, restoreComplaint } from './services/firestore'
 import { appConfig } from './lib/config'
 import { complaintService } from './services/complaintService'
 
 function AppInner() {
-  const [activeTab, setActiveTab] = useState('map')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const [route, setRoute] = useState('main')
   const [adminComplaints, setAdminComplaints] = useState([])
   const [deletedComplaints, setDeletedComplaints] = useState([])
-  
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
+
   const { location, error: locationError, requestPermission } = useLocation()
   const { user, loading: authLoading, login, userRole, refreshRole } = useAuthContext()
   const { complaints, loading, error, submitComplaint, refresh } = useComplaints(location, user)
+  const { notifications, markRead, markAllRead } = useNotifications(user)
   useTheme()
 
   const tabFromHash = (hash) => {
-    const tabMatch = hash.match(/^#\/(map|list|track|report)$/)
+    const tabMatch = hash.match(/^#\/(dashboard|map|list|report)$/)
     return tabMatch ? tabMatch[1] : null
   }
 
   useEffect(() => {
     const hash = window.location.hash
-    if (hash === '#/admin' || hash === '#/admin/dashboard') {
+    if (hash === '#/track') {
+      window.location.hash = '#/dashboard'
+    } else if (hash === '#/admin' || hash === '#/admin/dashboard') {
       setRoute('admin')
     } else if (hash === '#/login') {
       setRoute('login')
+    } else if (hash === '#/profile') {
+      setShowProfile(true)
+      window.location.hash = '#/dashboard'
     } else {
       setRoute('main')
       const tab = tabFromHash(hash)
@@ -51,10 +62,15 @@ function AppInner() {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash
-      if (hash === '#/admin' || hash === '#/admin/dashboard') {
+      if (hash === '#/track') {
+        window.location.hash = '#/dashboard'
+      } else if (hash === '#/admin' || hash === '#/admin/dashboard') {
         setRoute('admin')
       } else if (hash === '#/login') {
         setRoute('login')
+      } else if (hash === '#/profile') {
+        setShowProfile(true)
+        window.location.hash = '#/dashboard'
       } else {
         setRoute('main')
         const tab = tabFromHash(hash)
@@ -155,6 +171,22 @@ function AppInner() {
     setRoute('main')
   }, [])
 
+  const handleNotificationClick = useCallback(() => {
+    setShowNotifications(v => !v)
+  }, [])
+
+  const handleProfileClick = useCallback(() => {
+    setShowProfile(true)
+  }, [])
+
+  const handleNotificationNavigateToComplaint = useCallback((notification) => {
+    const complaint = complaints.find(c => c.id === notification.complaintId)
+    if (complaint) {
+      setSelectedComplaint(complaint)
+    }
+    setShowNotifications(false)
+  }, [complaints])
+
   if (route === 'login') {
     return <AdminLoginPage onNavigateHome={handleNavigateHome} />
   }
@@ -196,45 +228,65 @@ function AppInner() {
 
   return (
     <div className="h-screen h-[100dvh] bg-page safe-area-insets flex flex-col">
-      <Header user={user} onLogin={handleLogin} />
-      
-      <main className="flex-1 min-h-0 relative flex flex-col pb-24">
-        {activeTab === 'map' && (
-          <PublicMap 
-            complaints={complaints}
-            loading={loading}
-            center={location ? [location.latitude, location.longitude] : [19.2813, 72.8568]}
-            zoom={location ? 15 : 12}
-            onComplaintClick={handleComplaintSelect}
-            showUserLocation={true}
-            userLocation={location}
-            user={user}
-          />
-        )}
-        
-        {activeTab === 'list' && (
-          <ComplaintList 
-            complaints={complaints} 
-            loading={loading}
-            error={error}
-            onRefresh={refresh}
-            userLocation={location}
-            user={user}
-          />
-        )}
-        
-        {activeTab === 'track' && (
-          <TrackPage complaints={complaints} />
-        )}
+      <Header
+        user={user}
+        onLogin={handleLogin}
+        onNotificationClick={handleNotificationClick}
+        onProfileClick={handleProfileClick}
+      />
 
-        {activeTab === 'report' && (
-          <ComplaintForm 
-            onSubmit={submitComplaint}
-            userLocation={location}
-            user={user}
-            authLoading={authLoading}
-            loading={loading}
+      <main className="flex-1 min-h-0 relative flex flex-col pb-24">
+        {showProfile ? (
+          <ProfilePage
+            complaints={complaints}
+            onClose={() => setShowProfile(false)}
           />
+        ) : (
+          <>
+            {activeTab === 'dashboard' && (
+              <Dashboard
+                complaints={complaints}
+                onComplaintSelect={handleComplaintSelect}
+                onComplaintFound={handleComplaintSelect}
+                onTabChange={handleTabChange}
+                onNotificationClick={handleNotificationClick}
+              />
+            )}
+
+            {activeTab === 'map' && (
+              <PublicMap
+                complaints={complaints}
+                loading={loading}
+                center={location ? [location.latitude, location.longitude] : [19.2813, 72.8568]}
+                zoom={location ? 15 : 12}
+                onComplaintClick={handleComplaintSelect}
+                showUserLocation={true}
+                userLocation={location}
+                user={user}
+              />
+            )}
+
+            {activeTab === 'list' && (
+              <ComplaintList
+                complaints={complaints}
+                loading={loading}
+                error={error}
+                onRefresh={refresh}
+                userLocation={location}
+                user={user}
+              />
+            )}
+
+            {activeTab === 'report' && (
+              <ComplaintForm
+                onSubmit={submitComplaint}
+                userLocation={location}
+                user={user}
+                authLoading={authLoading}
+                loading={loading}
+              />
+            )}
+          </>
         )}
 
         {selectedComplaint && (
@@ -246,12 +298,24 @@ function AppInner() {
         )}
       </main>
 
-      <BottomNav 
-        activeTab={activeTab} 
-        onTabChange={handleTabChange}
-        user={user}
-      />
-      
+      {!showProfile && (
+        <BottomNav
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          user={user}
+        />
+      )}
+
+      {showNotifications && (
+        <NotificationPanel
+          notifications={notifications}
+          onClose={() => setShowNotifications(false)}
+          onMarkRead={markRead}
+          onMarkAllRead={markAllRead}
+          onNavigateToComplaint={handleNotificationNavigateToComplaint}
+        />
+      )}
+
       {locationError && (
         <div className="fixed bottom-24 left-4 right-4 z-50 animate-slide-up">
           <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg shadow-lg flex items-center justify-between max-w-md mx-auto">

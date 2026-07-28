@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'jalsetu_complaints'
+const NOTIFICATION_KEY = 'jalsetu_notifications'
 
 import { generateDisplayId } from '../lib/ids'
 
@@ -15,6 +16,18 @@ const getComplaints = () => {
 
 const saveComplaints = (complaints) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(complaints))
+}
+
+const getNotifications = () => {
+  try {
+    return JSON.parse(localStorage.getItem(NOTIFICATION_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+const saveNotifications = (notifications) => {
+  localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications))
 }
 
 const generateId = () => crypto.randomUUID()
@@ -243,5 +256,76 @@ export const complaintService = {
 
     saveComplaints(demoComplaints)
     return demoComplaints
+  },
+
+  async createNotification({ userId, type, title, message, complaintId }) {
+    await delay(200)
+    const notifications = getNotifications()
+    const notification = {
+      id: generateId(),
+      userId,
+      type,
+      title,
+      message,
+      complaintId: complaintId || null,
+      read: false,
+      createdAt: new Date().toISOString(),
+    }
+    notifications.unshift(notification)
+    saveNotifications(notifications)
+    return notification
+  },
+
+  async batchCreateNotifications(userIds, { type, title, message, complaintId }) {
+    await delay(300)
+    const notifications = getNotifications()
+    const created = []
+    for (const userId of userIds) {
+      const notification = {
+        id: generateId(),
+        userId,
+        type,
+        title,
+        message,
+        complaintId: complaintId || null,
+        read: false,
+        createdAt: new Date().toISOString(),
+      }
+      notifications.unshift(notification)
+      created.push(notification)
+    }
+    saveNotifications(notifications)
+    return created
+  },
+
+  subscribeToNotifications(userId, callback) {
+    const notifications = getNotifications()
+      .filter(n => n.userId === userId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    callback(notifications)
+    return () => {}
+  },
+
+  async markNotificationRead(notificationId) {
+    await delay(100)
+    const notifications = getNotifications()
+    const idx = notifications.findIndex(n => n.id === notificationId)
+    if (idx !== -1) {
+      notifications[idx].read = true
+      saveNotifications(notifications)
+    }
+  },
+
+  async markAllNotificationsRead(userId) {
+    await delay(200)
+    const notifications = getNotifications()
+    let changed = false
+    for (const n of notifications) {
+      if (n.userId === userId && !n.read) {
+        n.read = true
+        changed = true
+      }
+    }
+    if (changed) saveNotifications(notifications)
   },
 }

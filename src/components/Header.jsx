@@ -1,6 +1,9 @@
+import { useState, useRef, useEffect } from 'react'
 import { GoogleSignInButton } from './GoogleSignInButton'
 import { appConfig } from '../lib/config'
 import { useTheme } from '../hooks/useTheme'
+import { useNotifications } from '../hooks/useNotifications'
+import { useAuthContext } from '../contexts/AuthContext'
 
 const WaterWave = () => (
   <div className="relative h-3 overflow-hidden bg-header" aria-hidden="true">
@@ -25,8 +28,24 @@ const WaterWave = () => (
   </div>
 )
 
-export function Header({ user, onLogin }) {
+export function Header({ user, onLogin, onNotificationClick, onProfileClick }) {
   const { isDark, toggleTheme } = useTheme()
+  const { unreadCount } = useNotifications(user)
+  const [showDropdown, setShowDropdown] = useState(false)
+  const dropdownRef = useRef(null)
+  const authCtx = useAuthContext()
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const showNotifications = !!user
 
   return (
     <header className="bg-header safe-area-inset-top">
@@ -47,7 +66,7 @@ export function Header({ user, onLogin }) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             onClick={toggleTheme}
             className="touch-target flex items-center justify-center w-9 h-9 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
@@ -64,7 +83,66 @@ export function Header({ user, onLogin }) {
               </svg>
             )}
           </button>
-          <GoogleSignInButton user={user} onAuthChange={onLogin} />
+
+          {showNotifications && (
+            <button
+              onClick={onNotificationClick}
+              className="relative touch-target flex items-center justify-center w-9 h-9 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Notifications"
+              title="Notifications"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[10px] font-bold text-white bg-emergency rounded-full border-2 border-header leading-none">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
+
+          {user ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowDropdown(v => !v)}
+                className="touch-target flex items-center justify-center w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 hover:border-white/40 transition-colors"
+                aria-label="Profile menu"
+              >
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-teal-500 flex items-center justify-center text-white text-sm font-semibold">
+                    {(user.displayName || user.email || '?')[0].toUpperCase()}
+                  </div>
+                )}
+              </button>
+              {showDropdown && (
+                <div className="absolute right-0 top-full mt-2 w-44 bg-card border border-border rounded-xl shadow-xl z-50 py-1">
+                  <button
+                    onClick={() => { setShowDropdown(false); onProfileClick?.() }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-primary hover:bg-surface transition-colors text-left"
+                  >
+                    <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                    </svg>
+                    Profile
+                  </button>
+                  <button
+                    onClick={() => { setShowDropdown(false); authCtx.logout() }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-emergency hover:bg-emergency/5 transition-colors text-left"
+                  >
+                    <svg className="w-4 h-4 text-emergency" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                    </svg>
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <GoogleSignInButton user={user} onAuthChange={onLogin} />
+          )}
         </div>
       </div>
       <WaterWave />

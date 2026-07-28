@@ -3,6 +3,9 @@ import { statusConfig } from '../../lib/statusConfig'
 import { formatType } from '../../utils/formatters'
 import { toDate } from '../../utils/date'
 import { generateComplaintPdf } from '../../utils/pdfGenerator'
+import { createNotification } from '../../services/firestore'
+import { complaintService } from '../../services/complaintService'
+import { appConfig } from '../../lib/config'
 
 const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, v]) => ({
   value,
@@ -22,6 +25,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
   const defaultStatus = NEXT_STATUS[complaint?.status] || complaint?.status || ''
   const [selectedStatus, setSelectedStatus] = useState(defaultStatus)
   const [note, setNote] = useState('')
+  const [notifyUser, setNotifyUser] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [updateError, setUpdateError] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -37,6 +41,29 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
     setUpdating(true)
     try {
       await onUpdateStatus(complaint.id, selectedStatus, note)
+
+      if (notifyUser && complaint.userId) {
+        const title = 'Status Updated'
+        const message = `${note ? `${note} — ` : ''}Your complaint ${complaint.displayId || ''} has been updated to ${selectedStatus.replace(/_/g, ' ')}.`
+        if (appConfig.hasFirebase) {
+          await createNotification({
+            userId: complaint.userId,
+            type: 'status_update',
+            title,
+            message,
+            complaintId: complaint.id,
+          })
+        } else {
+          await complaintService.createNotification({
+            userId: complaint.userId,
+            type: 'status_update',
+            title,
+            message,
+            complaintId: complaint.id,
+          })
+        }
+      }
+
       onClose()
     } catch (err) {
       setUpdateError(err.message || 'Failed to update status')
@@ -173,6 +200,15 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
                 </button>
               ))}
             </div>
+            <label className="flex items-center gap-2 mb-3 cursor-pointer touch-target">
+              <input
+                type="checkbox"
+                checked={notifyUser}
+                onChange={(e) => setNotifyUser(e.target.checked)}
+                className="w-4 h-4 rounded border-border text-teal-600 focus:ring-teal-500"
+              />
+              <span className="text-sm text-text-body">Notify user about this update</span>
+            </label>
             <textarea
               value={note}
               onChange={(e) => { setNote(e.target.value); setUpdateError(null) }}
