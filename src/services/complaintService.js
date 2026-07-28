@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'jalsetu_complaints'
 
+import { generateDisplayId } from '../lib/ids'
+
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 const getComplaints = () => {
@@ -24,6 +26,19 @@ export const complaintService = {
     return complaints.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   },
 
+  async getById(id) {
+    await delay(300)
+    const clean = id.replace(/^#/, '')
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+    const found = all.find(c =>
+      c.id === clean ||
+      c.displayId === clean ||
+      c.id.slice(-6).toUpperCase() === clean.toUpperCase()
+    )
+    if (!found || found.deleted) return null
+    return found
+  },
+
   async getAllDeleted() {
     await delay(300)
     try {
@@ -39,6 +54,7 @@ export const complaintService = {
     const complaints = getComplaints()
     const newComplaint = {
       id: generateId(),
+      displayId: generateDisplayId(),
       ...data,
       userEmail: data.userEmail || null,
       status: 'submitted',
@@ -118,6 +134,7 @@ export const complaintService = {
     const demoComplaints = [
       {
         id: generateId(),
+        displayId: generateDisplayId(),
         type: 'critical_leak',
         description: 'Major water leakage from main pipe near the community center. Water flowing on road causing traffic issues.',
         latitude: 19.2850,
@@ -139,6 +156,7 @@ export const complaintService = {
       },
       {
         id: generateId(),
+        displayId: generateDisplayId(),
         type: 'contamination',
         description: 'Water has brownish color and foul smell. Suspected contamination in the supply line.',
         latitude: 19.2900,
@@ -159,6 +177,7 @@ export const complaintService = {
       },
       {
         id: generateId(),
+        displayId: generateDisplayId(),
         type: 'low_pressure',
         description: 'Very low water pressure since morning. Unable to fill tanks on upper floors.',
         latitude: 19.2750,
@@ -181,6 +200,7 @@ export const complaintService = {
       },
       {
         id: generateId(),
+        displayId: generateDisplayId(),
         type: 'no_supply',
         description: 'No water supply for 24 hours in entire block. Emergency situation for residents.',
         latitude: 19.2950,
@@ -200,6 +220,7 @@ export const complaintService = {
       },
       {
         id: generateId(),
+        displayId: generateDisplayId(),
         type: 'billing',
         description: 'Incorrect billing amount. Meter reading seems wrong. Requesting re-check.',
         latitude: 19.2700,

@@ -3,14 +3,18 @@ import {
   addDoc, 
   updateDoc, 
   doc, 
+  getDoc,
   query, 
+  where,
   orderBy, 
   onSnapshot, 
   getDocs,
   serverTimestamp,
-  arrayUnion 
+  arrayUnion,
+  limit,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { generateDisplayId } from '../lib/ids'
 
 const COLLECTION = 'complaints'
 const STATUSES = ['submitted', 'acknowledged', 'in_progress', 'resolved', 'rejected']
@@ -22,6 +26,7 @@ function createComplaintData(user, input) {
     throw new Error('Valid latitude and longitude are required')
   }
   return {
+    displayId: generateDisplayId(),
     userId: user.uid,
     userName: user.displayName || 'Anonymous',
     userEmail: user.email || null,
@@ -97,6 +102,43 @@ export function subscribeToAllComplaints(callback, errorCallback) {
     console.error('Complaints subscription error:', error)
     errorCallback?.(error)
   })
+}
+
+export async function getComplaintById(id) {
+  if (!db) throw new Error('Firestore not initialized')
+
+  const ref = doc(db, COLLECTION, id)
+  const snap = await getDoc(ref)
+  if (snap.exists()) {
+    const data = snap.data()
+    return {
+      id: snap.id,
+      ...data,
+      createdAt: data.createdAt?.toDate?.() || data.createdAt,
+      timeline: (data.timeline || []).map(entry => ({
+        ...entry,
+        timestamp: entry.timestamp?.toDate?.() || entry.timestamp,
+      })),
+    }
+  }
+
+  const q = query(collection(db, COLLECTION), where('displayId', '==', id), limit(1))
+  const qSnap = await getDocs(q)
+  if (!qSnap.empty) {
+    const doc_ = qSnap.docs[0]
+    const data = doc_.data()
+    return {
+      id: doc_.id,
+      ...data,
+      createdAt: data.createdAt?.toDate?.() || data.createdAt,
+      timeline: (data.timeline || []).map(entry => ({
+        ...entry,
+        timestamp: entry.timestamp?.toDate?.() || entry.timestamp,
+      })),
+    }
+  }
+
+  return null
 }
 
 export async function getAllComplaints() {

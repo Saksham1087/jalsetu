@@ -201,7 +201,6 @@ export function PublicMap({
   user,
 }) {
   const [fbComplaints, setFbComplaints] = useState([])
-  const [fbError, setFbError] = useState(null)
   const [fbLoading, setFbLoading] = useState(appConfig.hasFirebase)
   const [filterType, setFilterType] = useState([])
   const [filterWard, setFilterWard] = useState('')
@@ -234,14 +233,19 @@ export function PublicMap({
     setFbLoading(true)
     const unsub = subscribeToAllComplaints(
       (data) => { setFbComplaints(data); setFbLoading(false) },
-      (err) => { setFbError(err.message); setFbLoading(false) },
+      (_err) => { setFbLoading(false) },
     )
     return () => unsub?.()
   }, [])
 
-  const rawComplaints = useMemo(() => appConfig.hasFirebase ? fbComplaints : (propComplaints ?? []), [fbComplaints, propComplaints])
-  const isLoading = appConfig.hasFirebase ? fbLoading : (propLoading ?? false)
-  const displayError = appConfig.hasFirebase ? fbError : null
+  const rawComplaints = useMemo(() => {
+    if (!appConfig.hasFirebase) return propComplaints ?? []
+    if (fbComplaints.length > 0) return fbComplaints
+    if (propComplaints && propComplaints.length > 0) return propComplaints
+    return []
+  }, [fbComplaints, propComplaints])
+  const isLoading = appConfig.hasFirebase ? (fbLoading && fbComplaints.length === 0) : (propLoading ?? false)
+  const displayError = appConfig.hasFirebase && !fbLoading && fbComplaints.length === 0 && (!propComplaints || propComplaints.length === 0) ? (fbError || 'Failed to load complaints') : null
 
   const filteredComplaints = useMemo(() => {
     if (!rawComplaints || !Array.isArray(rawComplaints)) return []

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from '../hooks/useLocation'
-import { appConfig } from '../lib/config'
+import { appConfig, isDemo } from '../lib/config'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import { generateComplaintPdf } from '../utils/pdfGenerator'
 
@@ -355,7 +355,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
     if (!formData.type) newErrors.type = 'Please select type'
     if (!formData.latitude || !formData.longitude) newErrors.location = 'Please select location on map'
 
-    if (!authLoading && !appConfig.isDemo && !user) {
+    if (!authLoading && !isDemo && !user) {
       newErrors.auth = 'Please sign in to submit'
     }
 
@@ -416,11 +416,18 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                 </div>
               </div>
               <h3 className="font-display text-lg font-semibold text-text-primary mb-1">Complaint Submitted</h3>
-              <p className="text-sm text-text-secondary">Your water issue has been reported. Track its status in the list view.</p>
+              <p className="text-sm text-text-secondary">Your water issue has been reported. Track its status using the Track tab.</p>
               <div className="mt-4 h-1.5 bg-surface rounded-full overflow-hidden">
                 <div className="h-full bg-teal-600 rounded-full animate-[water-rise_2s_ease-out]" />
               </div>
               <p className="text-xs text-text-tertiary mt-2">Ticket created</p>
+              {submittedComplaint?.displayId && (
+                <div className="mt-3 p-3 bg-deep-50 border border-deep-200 rounded-lg">
+                  <p className="text-xs text-deep-700 font-medium">Complaint ID</p>
+                  <p className="text-lg font-bold text-deep-800 font-mono tracking-wider mt-0.5 select-all">{submittedComplaint.displayId}</p>
+                  <p className="text-xs text-deep-600 mt-1">Save this ID to track your complaint status.</p>
+                </div>
+              )}
               {user?.email && (
                 <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg text-left">
                   <p className="text-xs text-teal-700 font-medium flex items-center gap-1.5">
@@ -679,7 +686,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
 
           <button
             type="submit"
-            disabled={submitting || loading || uploading || authLoading || (!appConfig.isDemo && !user)}
+            disabled={submitting || loading || uploading || authLoading || (!isDemo && !user)}
             className="w-full mt-8 touch-target min-h-[48px] py-3.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 active:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Submitting...' : uploading ? 'Uploading photo...' : 'Submit Complaint'}

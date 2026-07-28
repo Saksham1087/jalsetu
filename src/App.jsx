@@ -7,6 +7,7 @@ import { BottomNav } from './components/BottomNav'
 import { ComplaintDetail } from './components/ComplaintDetail'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { AdminLayout } from './components/admin/AdminLayout'
+import { TrackPage } from './components/TrackPage'
 
 const ChatWidget = lazy(() => import('./components/ChatWidget').then(m => ({ default: m.ChatWidget })))
 import { useComplaints } from './hooks/useComplaints'
@@ -29,6 +30,11 @@ function AppInner() {
   const { complaints, loading, error, submitComplaint, refresh } = useComplaints(location, user)
   useTheme()
 
+  const tabFromHash = (hash) => {
+    const tabMatch = hash.match(/^#\/(map|list|track|report)$/)
+    return tabMatch ? tabMatch[1] : null
+  }
+
   useEffect(() => {
     const hash = window.location.hash
     if (hash === '#/admin' || hash === '#/admin/dashboard') {
@@ -37,6 +43,8 @@ function AppInner() {
       setRoute('login')
     } else {
       setRoute('main')
+      const tab = tabFromHash(hash)
+      if (tab) setActiveTab(tab)
     }
   }, [])
 
@@ -49,6 +57,8 @@ function AppInner() {
         setRoute('login')
       } else {
         setRoute('main')
+        const tab = tabFromHash(hash)
+        if (tab) setActiveTab(tab)
       }
     }
     window.addEventListener('hashchange', handleHashChange)
@@ -135,6 +145,11 @@ function AppInner() {
     await requestPermission()
   }, [requestPermission])
 
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab)
+    window.location.hash = `#/${tab}`
+  }, [])
+
   const handleNavigateHome = useCallback(() => {
     window.location.hash = '#/'
     setRoute('main')
@@ -208,6 +223,10 @@ function AppInner() {
           />
         )}
         
+        {activeTab === 'track' && (
+          <TrackPage complaints={complaints} />
+        )}
+
         {activeTab === 'report' && (
           <ComplaintForm 
             onSubmit={submitComplaint}
@@ -229,7 +248,7 @@ function AppInner() {
 
       <BottomNav 
         activeTab={activeTab} 
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         user={user}
       />
       

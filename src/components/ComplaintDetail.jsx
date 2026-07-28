@@ -2,7 +2,7 @@ import { formatRelativeTime, formatType, formatStatus } from '../utils/formatter
 import { statusConfig } from '../lib/statusConfig'
 import { TypeIcon } from './TypeIcon'
 
-export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
+export function ComplaintDetail({ complaint, onClose, onUpdateStatus, viewOnly }) {
   const config = statusConfig[complaint.status] || statusConfig.submitted
 
   return (
@@ -45,6 +45,18 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
                   {config.label}
                 </span>
               </div>
+
+              {complaint.displayId && (
+                <div className="bg-deep-50 border border-deep-200 rounded-xl p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-deep-700 font-medium">Complaint ID</p>
+                    <p className="text-sm font-bold text-deep-800 font-mono tracking-wider mt-0.5 select-all">{complaint.displayId}</p>
+                  </div>
+                  <svg className="w-8 h-8 text-deep-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                  </svg>
+                </div>
+              )}
 
               <div className="bg-surface rounded-xl p-4">
                 <h4 className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Description</h4>
@@ -121,29 +133,33 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
           </div>
 
           <div className="sticky bottom-0 bg-card border-t border-border/60 p-4 flex gap-2">
-            {complaint.status !== 'resolved' && complaint.status !== 'rejected' && (
-              <button
-                onClick={() => onUpdateStatus(complaint.id, 'acknowledged')}
-                className="flex-1 touch-target py-2.5 border border-teal-600/30 text-teal-700 font-medium rounded-xl hover:bg-teal-50 transition-colors text-sm"
-              >
-                Acknowledge
-              </button>
-            )}
-            {complaint.status === 'acknowledged' && (
-              <button
-                onClick={() => onUpdateStatus(complaint.id, 'in_progress')}
-                className="flex-1 touch-target py-2.5 bg-brass-400 text-white font-medium rounded-xl hover:bg-brass-500 transition-colors text-sm"
-              >
-                Start Work
-              </button>
-            )}
-            {complaint.status === 'in_progress' && (
-              <button
-                onClick={() => onUpdateStatus(complaint.id, 'resolved')}
-                className="flex-1 touch-target py-2.5 bg-resolved text-white font-medium rounded-xl hover:bg-green-700 transition-colors text-sm"
-              >
-                Mark Resolved
-              </button>
+            {!viewOnly && (
+              <>
+                {complaint.status !== 'resolved' && complaint.status !== 'rejected' && (
+                  <button
+                    onClick={() => onUpdateStatus(complaint.id, 'acknowledged')}
+                    className="flex-1 touch-target py-2.5 border border-teal-600/30 text-teal-700 font-medium rounded-xl hover:bg-teal-50 transition-colors text-sm"
+                  >
+                    Acknowledge
+                  </button>
+                )}
+                {complaint.status === 'acknowledged' && (
+                  <button
+                    onClick={() => onUpdateStatus(complaint.id, 'in_progress')}
+                    className="flex-1 touch-target py-2.5 bg-brass-400 text-white font-medium rounded-xl hover:bg-brass-500 transition-colors text-sm"
+                  >
+                    Start Work
+                  </button>
+                )}
+                {complaint.status === 'in_progress' && (
+                  <button
+                    onClick={() => onUpdateStatus(complaint.id, 'resolved')}
+                    className="flex-1 touch-target py-2.5 bg-resolved text-white font-medium rounded-xl hover:bg-green-700 transition-colors text-sm"
+                  >
+                    Mark Resolved
+                  </button>
+                )}
+              </>
             )}
             <button
               onClick={onClose}

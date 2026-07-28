@@ -141,7 +141,7 @@ export function ComplaintCard({ complaint, userLocation, index }) {
       >
         <div className="flex items-center gap-2">
           <span className="font-mono text-[11px] font-medium tracking-wider" style={{ color: config.gaugeColor }}>
-            #{complaint.id.slice(-6).toUpperCase()}
+            {complaint.displayId || `#${complaint.id.slice(-6).toUpperCase()}`}
           </span>
           <button
             onClick={async (e) => {

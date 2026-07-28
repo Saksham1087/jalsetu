@@ -47,8 +47,9 @@ export function useComplaints(userLocation, user) {
     const unsubscribe = subscribeToAllComplaints((data) => {
       setComplaints(normalizeData(data))
       setLoading(false)
-    }, (err) => {
-      setError(err.message)
+    }, () => {
+      complaintService.seedDemoData()
+      setComplaints(normalizeData(complaintService.getAll()))
       setLoading(false)
     })
 
