@@ -53,9 +53,9 @@ export function NotificationPanel({ notifications, onClose, onMarkRead, onMarkAl
       <div
         ref={panelRef}
         onClick={(e) => e.stopPropagation()}
-        className="bg-card rounded-t-2xl shadow-2xl max-h-[70dvh] flex flex-col animate-slide-up"
+        className="bg-card/95 backdrop-blur-xl rounded-t-2xl shadow-2xl max-h-[70dvh] flex flex-col animate-slide-up"
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 shrink-0 bg-card/80 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <h2 className="font-display text-base font-semibold text-text-primary">Notifications</h2>
             {unread > 0 && (

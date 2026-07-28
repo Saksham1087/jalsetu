@@ -1,8 +1,10 @@
 import { formatRelativeTime, formatType, formatStatus } from '../utils/formatters'
 import { statusConfig } from '../lib/statusConfig'
 import { TypeIcon } from './TypeIcon'
+import { useToast } from './Toast'
 
 export function ComplaintDetail({ complaint, onClose, onUpdateStatus, viewOnly }) {
+  const { toast } = useToast()
   const config = statusConfig[complaint.status] || statusConfig.submitted
 
   return (
@@ -132,12 +134,12 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus, viewOnly }
             </div>
           </div>
 
-          <div className="sticky bottom-0 bg-card border-t border-border/60 p-4 flex gap-2">
+          <div className="sticky bottom-0 bg-card/90 backdrop-blur-sm border-t border-border/60 p-4 flex gap-2">
             {!viewOnly && (
               <>
                 {complaint.status !== 'resolved' && complaint.status !== 'rejected' && (
                   <button
-                    onClick={() => onUpdateStatus(complaint.id, 'acknowledged')}
+                    onClick={() => { onUpdateStatus(complaint.id, 'acknowledged'); toast.success('Complaint acknowledged') }}
                     className="flex-1 touch-target py-2.5 border border-teal-600/30 text-teal-700 font-medium rounded-xl hover:bg-teal-50 transition-colors text-sm"
                   >
                     Acknowledge
@@ -145,7 +147,7 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus, viewOnly }
                 )}
                 {complaint.status === 'acknowledged' && (
                   <button
-                    onClick={() => onUpdateStatus(complaint.id, 'in_progress')}
+                    onClick={() => { onUpdateStatus(complaint.id, 'in_progress'); toast.success('Work started on complaint') }}
                     className="flex-1 touch-target py-2.5 bg-brass-400 text-white font-medium rounded-xl hover:bg-brass-500 transition-colors text-sm"
                   >
                     Start Work
@@ -153,7 +155,7 @@ export function ComplaintDetail({ complaint, onClose, onUpdateStatus, viewOnly }
                 )}
                 {complaint.status === 'in_progress' && (
                   <button
-                    onClick={() => onUpdateStatus(complaint.id, 'resolved')}
+                    onClick={() => { onUpdateStatus(complaint.id, 'resolved'); toast.success('Complaint marked resolved') }}
                     className="flex-1 touch-target py-2.5 bg-resolved text-white font-medium rounded-xl hover:bg-green-700 transition-colors text-sm"
                   >
                     Mark Resolved

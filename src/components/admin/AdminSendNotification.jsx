@@ -3,8 +3,10 @@ import { batchCreateNotifications } from '../../services/firestore'
 import { complaintService } from '../../services/complaintService'
 import { appConfig } from '../../lib/config'
 import { useAuthContext } from '../../contexts/AuthContext'
+import { useToast } from '../Toast'
 
 export function AdminSendNotification({ complaints }) {
+  const { toast } = useToast()
   const { user } = useAuthContext()
   const [targetType, setTargetType] = useState('user')
   const [selectedUserId, setSelectedUserId] = useState('')
@@ -67,11 +69,13 @@ export function AdminSendNotification({ complaints }) {
       }
 
       setResult(`Notification sent to ${userIds.length} user${userIds.length === 1 ? '' : 's'}.`)
+      toast.success(`Notification sent to ${userIds.length} user${userIds.length === 1 ? '' : 's'}`)
       setTitle('')
       setMessage('')
       setSelectedUserId('')
     } catch (err) {
       setError(err.message || 'Failed to send notification')
+      toast.error(err.message || 'Failed to send notification')
     } finally {
       setSending(false)
     }

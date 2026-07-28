@@ -8,6 +8,7 @@ import { ComplaintDetail } from './components/ComplaintDetail'
 import { Dashboard } from './components/Dashboard'
 import { ProfilePage } from './components/ProfilePage'
 import { NotificationPanel } from './components/NotificationPanel'
+import { EmergencyButton } from './components/EmergencyButton'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { AdminLayout } from './components/admin/AdminLayout'
 
@@ -246,6 +247,7 @@ function AppInner() {
             {activeTab === 'dashboard' && (
               <Dashboard
                 complaints={complaints}
+                loading={loading}
                 onComplaintSelect={handleComplaintSelect}
                 onComplaintFound={handleComplaintSelect}
                 onTabChange={handleTabChange}
@@ -324,6 +326,8 @@ function AppInner() {
           </div>
         </div>
       )}
+
+      <EmergencyButton />
 
       {appConfig.hasGroq && (
         <Suspense fallback={null}>

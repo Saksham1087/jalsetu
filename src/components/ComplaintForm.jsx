@@ -3,6 +3,7 @@ import { useLocation } from '../hooks/useLocation'
 import { appConfig, isDemo } from '../lib/config'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import { generateComplaintPdf } from '../utils/pdfGenerator'
+import { useToast } from './Toast'
 
 
 const TYPE_OPTIONS = [
@@ -60,6 +61,7 @@ async function resizeImage(file) {
 }
 
 export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loading }) {
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     type: '',
     description: '',
@@ -389,9 +391,11 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
       setSubmittedComplaint(complaintWithData)
 
       setShowSuccess(true)
+      toast.success('Complaint submitted successfully!')
 
     } catch (err) {
       setErrors({ submit: err.message || 'Failed to submit complaint' })
+      toast.error(err.message || 'Failed to submit complaint')
     } finally {
       setSubmitting(false)
     }

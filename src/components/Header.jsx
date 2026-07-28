@@ -48,7 +48,7 @@ export function Header({ user, onLogin, onNotificationClick, onProfileClick }) {
   const showNotifications = !!user
 
   return (
-    <header className="bg-header safe-area-inset-top">
+    <header className="bg-header/90 backdrop-blur-md safe-area-inset-top">
       <div className="px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="relative flex items-center justify-center w-8 h-8">

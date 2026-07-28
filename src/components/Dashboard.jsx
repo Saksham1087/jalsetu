@@ -5,10 +5,12 @@ import { getComplaintById } from '../services/firestore'
 import { complaintService } from '../services/complaintService'
 import { appConfig } from '../lib/config'
 import { formatRelativeTime, formatType } from '../utils/formatters'
+import { Skeleton, SkeletonStatGrid } from './Skeleton'
+import { useToast } from './Toast'
 
 function StatCard({ label, value, icon, color }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-3.5 flex items-center gap-3">
+    <div className="bg-card/90 backdrop-blur-sm border border-border/70 rounded-xl p-3.5 flex items-center gap-3">
       <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
         {icon}
       </div>
@@ -21,6 +23,7 @@ function StatCard({ label, value, icon, color }) {
 }
 
 function TrackByIDCard({ onComplaintFound }) {
+  const { toast } = useToast()
   const [searchId, setSearchId] = useState('')
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -51,11 +54,14 @@ function TrackByIDCard({ onComplaintFound }) {
       if (result) {
         onComplaintFound(result)
         setSearchId('')
+        toast.success('Complaint found!')
       } else {
         setNotFound(true)
+        toast.error('Complaint not found. Please check the ID.')
       }
     } catch (err) {
       setError(err.message || 'Failed to look up complaint')
+      toast.error(err.message || 'Failed to look up complaint')
     } finally {
       setLoading(false)
     }
@@ -201,7 +207,7 @@ function EmptyState({ onTabChange }) {
   )
 }
 
-export function Dashboard({ complaints, onComplaintSelect, onComplaintFound, onTabChange, onNotificationClick }) {
+export function Dashboard({ complaints, loading, onComplaintSelect, onComplaintFound, onTabChange, onNotificationClick }) {
   const { user } = useAuthContext()
   const { notifications } = useNotifications(user)
 
@@ -213,6 +219,37 @@ export function Dashboard({ complaints, onComplaintSelect, onComplaintFound, onT
   const thisWeek = myComplaints.filter(c => new Date(c.createdAt) >= weekAgo).length
 
   const showNotifications = !!user
+
+  if (loading && myComplaints.length === 0) {
+    return (
+      <div className="min-h-screen min-h-[100dvh] pb-24 safe-area-inset-bottom overflow-y-auto">
+        <div className="px-4 pt-5 pb-6 space-y-5">
+          <div>
+            <Skeleton width={180} height={24} rounded="lg" />
+          </div>
+          <SkeletonStatGrid />
+          <div className="bg-card border border-border rounded-xl p-4">
+            <Skeleton width={120} height={16} rounded="lg" />
+            <div className="mt-3 flex gap-2">
+              <Skeleton width="70%" height={44} rounded="lg" />
+              <Skeleton width="30%" height={44} rounded="lg" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3 bg-card border border-border rounded-xl p-3.5">
+                <Skeleton width={36} height={36} rounded="full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton width="60%" height={16} />
+                  <Skeleton width="40%" height={12} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen min-h-[100dvh] pb-24 safe-area-inset-bottom overflow-y-auto">
@@ -258,6 +295,30 @@ export function Dashboard({ complaints, onComplaintSelect, onComplaintFound, onT
 
             {/* Track by ID Card */}
             <TrackByIDCard onComplaintFound={onComplaintFound} />
+
+            {/* Emergency Call Card */}
+            <div className="bg-emergency/5 border border-emergency/20 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-10 h-10 rounded-full bg-emergency/15 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-emergency" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display text-sm font-semibold text-text-primary">Speak to someone</h3>
+                  <p className="text-xs text-text-secondary mt-0.5">Call the MBMC helpline directly for water emergencies.</p>
+                </div>
+              </div>
+              <a
+                href="tel:1800224849"
+                className="mt-3 w-full touch-target min-h-[44px] py-2.5 bg-emergency text-white text-sm font-medium rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                </svg>
+                Call Helpline
+              </a>
+            </div>
           </>
         )}
 

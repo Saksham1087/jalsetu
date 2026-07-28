@@ -6,6 +6,7 @@ import { generateComplaintPdf } from '../../utils/pdfGenerator'
 import { createNotification } from '../../services/firestore'
 import { complaintService } from '../../services/complaintService'
 import { appConfig } from '../../lib/config'
+import { useToast } from '../Toast'
 
 const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, v]) => ({
   value,
@@ -22,6 +23,7 @@ const NEXT_STATUS = {
 }
 
 export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDelete }) {
+  const { toast } = useToast()
   const defaultStatus = NEXT_STATUS[complaint?.status] || complaint?.status || ''
   const [selectedStatus, setSelectedStatus] = useState(defaultStatus)
   const [note, setNote] = useState('')
@@ -64,9 +66,11 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
         }
       }
 
+      toast.success(`Status updated to ${selectedStatus.replace(/_/g, ' ')}`)
       onClose()
     } catch (err) {
       setUpdateError(err.message || 'Failed to update status')
+      toast.error(err.message || 'Failed to update status')
     } finally {
       setUpdating(false)
     }
@@ -76,6 +80,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
     setDeleting(true)
     try {
       await onDelete(complaint.id)
+      toast.success('Complaint deleted')
       onClose()
     } catch (err) {
       setUpdateError(err.message || 'Failed to delete complaint')

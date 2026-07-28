@@ -133,8 +133,8 @@ export function ChatWidget() {
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-96 max-w-[calc(100vw-1rem)] h-[500px] max-h-[70vh] min-h-[300px] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col animate-slide-up">
-          <div className="bg-teal-600 text-white px-4 py-3 flex items-center justify-between">
+        <div className="absolute bottom-16 right-0 w-96 max-w-[calc(100vw-1rem)] h-[500px] max-h-[70vh] min-h-[300px] bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border/70 overflow-hidden flex flex-col animate-slide-up">
+          <div className="bg-teal-600/90 backdrop-blur-md text-white px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

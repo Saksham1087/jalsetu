@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ComplaintCard } from './ComplaintCard'
 import { FilterBar } from './FilterBar'
+import { SkeletonList } from './Skeleton'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import { getDistance } from '../utils/geo'
 import { toDate } from '../utils/date'
@@ -89,16 +90,9 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
 
   if (loading && complaints.length === 0) {
     return (
-      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center pb-24 safe-area-inset-bottom">
-        <div className="text-center p-8">
-          <div className="relative w-12 h-12 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full bg-teal-100 animate-[water-ripple_1.5s_ease-out_infinite]" />
-            <div className="absolute inset-0 rounded-full bg-teal-100 animate-[water-ripple_1.5s_ease-out_infinite_0.5s]" />
-            <svg className="relative w-12 h-12 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-2.5 4.5-7.5 9-7.5 13.5a7.5 7.5 0 0015 0c0-4.5-5-9-7.5-13.5z" />
-            </svg>
-          </div>
-          <p className="text-sm text-text-secondary">Loading complaints...</p>
+      <div className="min-h-screen min-h-[100dvh] pb-24 safe-area-inset-bottom">
+        <div className="px-4 pt-4">
+          <SkeletonList count={6} />
         </div>
       </div>
     )
