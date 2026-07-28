@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
-import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,14 +15,12 @@ const firebaseConfig = {
 let app
 let auth
 let db
-let functions
 let googleProvider
 
 if (firebaseConfig.apiKey) {
   app = initializeApp(firebaseConfig)
   auth = getAuth(app)
   db = getFirestore(app)
-  functions = getFunctions(app, 'us-central1')
   googleProvider = new GoogleAuthProvider()
   googleProvider.setCustomParameters({ prompt: 'select_account' })
 } else {
@@ -34,7 +31,6 @@ export {
   app, 
   auth, 
   db, 
-  functions, 
   googleProvider, 
   signInWithPopup, 
   signOut 

@@ -25,7 +25,7 @@ function AppInner() {
   const [deletedComplaints, setDeletedComplaints] = useState([])
   
   const { location, error: locationError, requestPermission } = useLocation()
-  const { user, loading: authLoading, login, logout, userRole, refreshRole } = useAuthContext()
+  const { user, loading: authLoading, login, userRole, refreshRole } = useAuthContext()
   const { complaints, loading, error, submitComplaint, refresh } = useComplaints(location, user)
   useTheme()
 
@@ -97,8 +97,6 @@ function AppInner() {
   const handleLogin = useCallback(async () => {
     try { await login() } catch (err) { console.error('Login error:', err) }
   }, [login])
-
-  const handleLogout = useCallback(() => logout(), [logout])
 
   const handleComplaintSelect = useCallback((complaint) => {
     setSelectedComplaint(complaint)
@@ -183,7 +181,7 @@ function AppInner() {
 
   return (
     <div className="h-screen h-[100dvh] bg-page safe-area-insets flex flex-col">
-      <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
+      <Header user={user} onLogin={handleLogin} />
       
       <main className="flex-1 min-h-0 relative flex flex-col pb-24">
         {activeTab === 'map' && (

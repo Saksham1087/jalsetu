@@ -25,7 +25,7 @@ const WaterWave = () => (
   </div>
 )
 
-export function Header({ user, onLogin, onLogout: _onLogout }) {
+export function Header({ user, onLogin }) {
   const { isDark, toggleTheme } = useTheme()
 
   return (

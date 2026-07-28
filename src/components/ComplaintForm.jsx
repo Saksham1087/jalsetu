@@ -3,7 +3,7 @@ import { useLocation } from '../hooks/useLocation'
 import { appConfig } from '../lib/config'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import { generateComplaintPdf } from '../utils/pdfGenerator'
-import '../styles/complaint-form.css'
+
 
 const TYPE_OPTIONS = [
   { value: 'critical_leak', label: 'Critical Leak', description: 'Major pipe burst, flooding' },
@@ -148,7 +148,7 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
       const marker = L.marker(initialPos, {
         draggable: true,
         icon: L.divIcon({
-          className: 'complaint-marker',
+          className: 'custom-complaint-marker',
           html: '<div class="marker-wrapper" style="--marker-color: #127A7A"><div class="marker-pin"></div><div class="marker-pulse"></div></div>',
           iconSize: [36, 36],
           iconAnchor: [18, 36],

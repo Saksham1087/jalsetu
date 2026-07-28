@@ -30,16 +30,10 @@ export const MIRA_BHAYANDER = {
     { id: 24, name: 'Ward 24', area: 'Bhayander East' },
   ],
 
-  defaultSchedule: {
-    morning: { start: '07:00', end: '09:00' },
-    evening: { start: '19:00', end: '21:00' },
-  },
-
   contacts: {
     mbmc: '022-28140002',
     waterComplaint: '022-28140002',
     emergency: '1916',
-    website: 'https://mbmc.gov.in',
   },
 
   knownIssueAreas: [
@@ -53,6 +47,4 @@ export const MIRA_BHAYANDER = {
   ],
 }
 
-export function getWardById(wardId) {
-  return MIRA_BHAYANDER.wards.find(w => w.id === wardId) || null
-}
+

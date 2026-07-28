@@ -8,7 +8,7 @@ const statusColors = Object.fromEntries(
   Object.entries(statusConfig).map(([key, v]) => [key, { bg: v.adminBg, text: v.adminText, dot: v.dot }])
 )
 
-export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRefresh }) {
+export function AdminDashboard({ complaints, onSelectComplaint }) {
   const [statusFilter, setStatusFilter] = useState('')
   const [wardFilter, setWardFilter] = useState('')
 
