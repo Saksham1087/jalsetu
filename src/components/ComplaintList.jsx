@@ -3,6 +3,7 @@ import { ComplaintCard } from './ComplaintCard'
 import { FilterBar } from './FilterBar'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
 import { getDistance } from '../utils/geo'
+import { toDate } from '../utils/date'
 
 function normalizeType(type) {
   if (type === 'critical_leak' || type === 'leakage') return 'critical_leak'
@@ -43,10 +44,16 @@ export function ComplaintList({ complaints, loading, error, onRefresh, userLocat
         }
         break
       case 'newest':
-        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        filtered.sort((a, b) => {
+          const da = toDate(a.createdAt); const db = toDate(b.createdAt)
+          return (db ? db.getTime() : 0) - (da ? da.getTime() : 0)
+        })
         break
       case 'oldest':
-        filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        filtered.sort((a, b) => {
+          const da = toDate(a.createdAt); const db = toDate(b.createdAt)
+          return (da ? da.getTime() : 0) - (db ? db.getTime() : 0)
+        })
         break
       case 'status':
         const statusOrder = { submitted: 0, acknowledged: 1, in_progress: 2, resolved: 3, rejected: 4 }

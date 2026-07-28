@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from '../hooks/useLocation'
 import { appConfig } from '../lib/config'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
+import { generateComplaintPdf } from '../utils/pdfGenerator'
 import '../styles/complaint-form.css'
 
 const TYPE_OPTIONS = [
@@ -73,6 +74,8 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [submittedComplaint, setSubmittedComplaint] = useState(null)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [mapReady, setMapReady] = useState(false)
@@ -320,6 +323,24 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
     }
   }, [formData.type, user])
 
+  const handleCloseSuccess = () => {
+    setShowSuccess(false)
+    setSubmittedComplaint(null)
+    setFormData({
+      type: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      address: '',
+      landmark: '',
+      ward: '',
+      mobile: '',
+      images: [],
+    })
+    setUserMarker(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   const removePhoto = () => {
     setFormData(prev => ({ ...prev, images: [] }))
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -355,27 +376,19 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
         ward: formData.ward,
         landmark: formData.landmark,
         mobile: formData.mobile || null,
+        userEmail: user?.email || null,
       }
 
-      await onSubmit(complaintData)
+      const result = await onSubmit(complaintData)
+      const complaintWithData = {
+        ...result,
+        userName: user?.displayName || result.userName || 'User',
+        userEmail: user?.email || result.userEmail || null,
+        images: result.images?.length ? result.images : formData.images,
+      }
+      setSubmittedComplaint(complaintWithData)
 
       setShowSuccess(true)
-      setTimeout(() => {
-        setShowSuccess(false)
-        setFormData({
-          type: '',
-          description: '',
-          latitude: '',
-          longitude: '',
-          address: '',
-          landmark: '',
-          ward: '',
-          mobile: '',
-          images: [],
-        })
-        setUserMarker(null)
-        if (fileInputRef.current) fileInputRef.current.value = ''
-      }, 2400)
 
     } catch (err) {
       setErrors({ submit: err.message || 'Failed to submit complaint' })
@@ -408,6 +421,54 @@ export function ComplaintForm({ onSubmit, userLocation, user, authLoading, loadi
                 <div className="h-full bg-teal-600 rounded-full animate-[water-rise_2s_ease-out]" />
               </div>
               <p className="text-xs text-text-tertiary mt-2">Ticket created</p>
+              {user?.email && (
+                <div className="mt-3 p-3 bg-teal-50 border border-teal-200 rounded-lg text-left">
+                  <p className="text-xs text-teal-700 font-medium flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                    </svg>
+                    Confirmation sent to {user.email}
+                  </p>
+                  <p className="text-xs text-teal-600 mt-1">We've sent a confirmation email with your complaint details.</p>
+                </div>
+              )}
+              {submittedComplaint && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setDownloadingPdf(true)
+                    try {
+                      await generateComplaintPdf(submittedComplaint)
+                    } catch {
+                      // silent
+                    }
+                    setDownloadingPdf(false)
+                  }}
+                  disabled={downloadingPdf}
+                  className="mt-4 w-full touch-target min-h-[44px] py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 active:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {downloadingPdf ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Preparing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                      </svg>
+                      Download Report
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCloseSuccess}
+                className="mt-3 w-full touch-target min-h-[44px] py-2.5 border border-border text-text-body font-medium rounded-lg hover:bg-surface transition-colors"
+              >
+                Back
+              </button>
             </div>
           ) : (
           <>

@@ -24,6 +24,7 @@ function createComplaintData(user, input) {
   return {
     userId: user.uid,
     userName: user.displayName || 'Anonymous',
+    userEmail: user.email || null,
     userPhotoURL: user.photoURL || null,
     type: input.type || 'other',
     description: input.description,

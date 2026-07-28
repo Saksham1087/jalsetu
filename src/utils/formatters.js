@@ -1,6 +1,8 @@
-export function formatRelativeTime(dateString) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
+import { toDate } from './date'
+
+export function formatRelativeTime(value) {
+  const date = toDate(value)
+  if (!date) return ''
   const now = new Date()
   const diffMs = now - date
   const diffMins = Math.floor(diffMs / 60000)
@@ -11,12 +13,12 @@ export function formatRelativeTime(dateString) {
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays < 7) return `${diffDays}d ago`
-  return formatDate(dateString)
+  return formatDate(value)
 }
 
-export function formatDate(dateString) {
-  if (!dateString) return ''
-  const date = new Date(dateString)
+export function formatDate(value) {
+  const date = toDate(value)
+  if (!date) return ''
   return date.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',

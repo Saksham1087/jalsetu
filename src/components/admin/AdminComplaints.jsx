@@ -3,12 +3,13 @@ import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
 import { AdminComplaintDetail } from './AdminComplaintDetail'
 import { statusConfig } from '../../lib/statusConfig'
 import { formatType } from '../../utils/formatters'
+import { toDate } from '../../utils/date'
 
 const statusColors = Object.fromEntries(
   Object.entries(statusConfig).map(([key, v]) => [key, { bg: v.adminBg, text: v.adminText, dot: v.dot }])
 )
 
-export function AdminComplaints({ complaints, onUpdateStatus }) {
+export function AdminComplaints({ complaints, onUpdateStatus, onDelete }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [wardFilter, setWardFilter] = useState('')
@@ -104,7 +105,7 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
                         {complaint.description || 'No description'}
                       </p>
                       <p className="text-xs text-text-secondary mt-0.5">
-                        {complaint.userName || 'Anonymous'} · {new Date(complaint.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {complaint.userName || 'Anonymous'} · {(() => { const d = toDate(complaint.createdAt); return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown' })()}
                       </p>
                     </div>
                     <span className="text-xs text-text-tertiary mt-1 flex-shrink-0">
@@ -123,6 +124,7 @@ export function AdminComplaints({ complaints, onUpdateStatus }) {
           complaint={selectedComplaint}
           onClose={() => setSelectedComplaint(null)}
           onUpdateStatus={onUpdateStatus}
+          onDelete={onDelete}
         />
       )}
     </div>

@@ -8,6 +8,7 @@ import L from 'leaflet'
 import { subscribeToAllComplaints } from '../services/firestore'
 import { appConfig } from '../lib/config'
 import { MIRA_BHAYANDER } from '../lib/miraBhayander'
+import { toDate } from '../utils/date'
 import '../styles/map.css'
 
 const typeColors = {
@@ -65,7 +66,7 @@ function createClusterIcon(count) {
 function createPopupContent(complaint) {
   const color = typeColors[complaint.type] || typeColors.other
   const label = typeLabels[complaint.type] || 'Other'
-  const date = new Date(complaint.createdAt?.toDate ? complaint.createdAt.toDate() : complaint.createdAt)
+  const date = toDate(complaint.createdAt) || new Date()
 
   return `
     <div style="padding: 8px; font-family: system-ui, sans-serif; font-size: 14px; color: #1f2937;">

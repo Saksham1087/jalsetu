@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { formatDistance, formatRelativeTime, formatType } from '../utils/formatters'
 import { statusConfig } from '../lib/statusConfig'
 import { getDistance } from '../utils/geo'
+import { generateComplaintPdf } from '../utils/pdfGenerator'
 
 const TypeIcon = ({ type, className = 'w-5 h-5' }) => {
   const icons = {
@@ -55,6 +57,8 @@ const statusSaturation = {
 }
 
 export function ComplaintCard({ complaint, userLocation, index }) {
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
+
   const distance = userLocation && complaint.latitude && complaint.longitude
     ? formatDistance(getDistance(userLocation, complaint))
     : null
@@ -178,9 +182,30 @@ export function ComplaintCard({ complaint, userLocation, index }) {
           borderTopColor: config.gaugeColor + '15',
         }}
       >
-        <span className="font-mono text-[11px] font-medium tracking-wider" style={{ color: config.gaugeColor }}>
-          #{complaint.id.slice(-6).toUpperCase()}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] font-medium tracking-wider" style={{ color: config.gaugeColor }}>
+            #{complaint.id.slice(-6).toUpperCase()}
+          </span>
+          <button
+            onClick={async (e) => {
+              e.stopPropagation()
+              setDownloadingPdf(true)
+              try { await generateComplaintPdf(complaint) } catch {}
+              setDownloadingPdf(false)
+            }}
+            disabled={downloadingPdf}
+            className="p-1 rounded hover:bg-white/10 transition-colors disabled:opacity-50"
+            title="Download PDF Report"
+          >
+            {downloadingPdf ? (
+              <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: config.gaugeColor }} />
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} style={{ color: config.gaugeColor }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+            )}
+          </button>
+        </div>
         <span className="text-[11px]" style={{ color: config.gaugeColor }}>
           {complaint.userName || 'Anonymous'}
         </span>

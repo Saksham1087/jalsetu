@@ -46,7 +46,6 @@ const TypeIcon = ({ type, className = 'w-5 h-5' }) => {
 }
 
 export function ComplaintDetail({ complaint, onClose, onUpdateStatus }) {
-
   const config = statusConfig[complaint.status] || statusConfig.submitted
 
   return (

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
 import { statusConfig } from '../../lib/statusConfig'
 import { formatType } from '../../utils/formatters'
+import { toDate } from '../../utils/date'
 
 const statusColors = Object.fromEntries(
   Object.entries(statusConfig).map(([key, v]) => [key, { bg: v.adminBg, text: v.adminText, dot: v.dot }])
@@ -105,7 +106,7 @@ export function AdminDashboard({ complaints, onSelectComplaint, onRefresh: _onRe
           <div className="divide-y divide-divider">
             {filteredComplaints.map(complaint => {
               const sc = statusColors[complaint.status] || statusColors.submitted
-              const date = new Date(complaint.createdAt)
+              const date = toDate(complaint.createdAt)
               return (
                 <div key={complaint.id} className="px-4 py-3 hover:bg-surface transition-colors">
                   <div className="flex items-start justify-between gap-4">

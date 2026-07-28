@@ -142,6 +142,7 @@ export function AdminLayout({ complaints, deletedComplaints, onUpdateStatus, onD
             <AdminComplaints
               complaints={complaints}
               onUpdateStatus={onUpdateStatus}
+              onDelete={onDelete}
             />
           )}
           {activeNav === 'wards' && (

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { MIRA_BHAYANDER } from '../../lib/miraBhayander'
 import { formatType } from '../../utils/formatters'
+import { toDate } from '../../utils/date'
 
 export function AdminTrash({ deletedComplaints, onRestore }) {
   const [search, setSearch] = useState('')
@@ -93,7 +94,7 @@ export function AdminTrash({ deletedComplaints, onRestore }) {
                       {complaint.description || 'No description'}
                     </p>
                     <p className="text-xs text-text-secondary mt-0.5">
-                      {complaint.userName || 'Anonymous'} · Deleted {complaint.deletedAt ? new Date(complaint.deletedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'recently'}
+                      {complaint.userName || 'Anonymous'} · Deleted {(() => { const d = toDate(complaint.deletedAt); return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'recently' })()}
                     </p>
                   </div>
                   <button

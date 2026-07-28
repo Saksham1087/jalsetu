@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { statusConfig } from '../../lib/statusConfig'
 import { formatType } from '../../utils/formatters'
+import { toDate } from '../../utils/date'
+import { generateComplaintPdf } from '../../utils/pdfGenerator'
 
 const STATUS_OPTIONS = Object.entries(statusConfig).map(([value, v]) => ({
   value,
@@ -24,6 +26,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
   const [updateError, setUpdateError] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
 
   if (!complaint) return null
 
@@ -144,7 +147,7 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
                     <p className="text-sm font-medium text-text-primary capitalize">{entry.status?.replace('_', ' ')}</p>
                     {entry.note && <p className="text-xs text-text-secondary mt-0.5">{entry.note}</p>}
                     <p className="text-xs text-text-tertiary mt-0.5">
-                      {new Date(entry.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {(() => { const d = toDate(entry.timestamp); return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Unknown' })()}
                     </p>
                   </div>
                 </div>
@@ -195,6 +198,33 @@ export function AdminComplaintDetail({ complaint, onClose, onUpdateStatus, onDel
                 Cancel
               </button>
             </div>
+          </div>
+
+          {/* Download Report */}
+          <div className="border-t border-border pt-4">
+            <button
+              onClick={async () => {
+                setDownloadingPdf(true)
+                try { await generateComplaintPdf(complaint) } catch {}
+                setDownloadingPdf(false)
+              }}
+              disabled={downloadingPdf}
+              className="w-full py-2 bg-teal-50 border border-teal-200 text-teal-700 font-medium rounded-lg hover:bg-teal-100 transition-colors text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {downloadingPdf ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                  Preparing PDF...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  Download Report (PDF)
+                </>
+              )}
+            </button>
           </div>
 
           {/* Delete Complaint */}

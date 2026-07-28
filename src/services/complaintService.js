@@ -40,6 +40,7 @@ export const complaintService = {
     const newComplaint = {
       id: generateId(),
       ...data,
+      userEmail: data.userEmail || null,
       status: 'submitted',
       deleted: false,
       deletedAt: null,

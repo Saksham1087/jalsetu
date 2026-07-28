@@ -20,6 +20,15 @@ function normalizeData(items) {
     updatedAt: c.updatedAt?.toDate
       ? c.updatedAt.toDate().toISOString()
       : c.updatedAt,
+    deletedAt: c.deletedAt?.toDate
+      ? c.deletedAt.toDate().toISOString()
+      : c.deletedAt,
+    timeline: (c.timeline || []).map(entry => ({
+      ...entry,
+      timestamp: entry.timestamp?.toDate
+        ? entry.timestamp.toDate().toISOString()
+        : entry.timestamp,
+    })),
   }))
 }
 
