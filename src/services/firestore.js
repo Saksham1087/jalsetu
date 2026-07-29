@@ -4,6 +4,7 @@ import {
   updateDoc, 
   doc, 
   getDoc,
+  setDoc,
   query, 
   where,
   orderBy, 
@@ -13,12 +14,14 @@ import {
   serverTimestamp,
   arrayUnion,
   limit,
+  deleteDoc,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { generateDisplayId } from '../lib/ids'
 
 const COLLECTION = 'complaints'
 const NOTIFICATIONS_COLLECTION = 'notifications'
+const SENT_NOTIFICATIONS_COLLECTION = 'sentNotifications'
 const STATUSES = ['submitted', 'acknowledged', 'in_progress', 'resolved', 'rejected']
 
 function createComplaintData(user, input) {
@@ -206,7 +209,7 @@ export function subscribeToDeletedComplaints(callback, errorCallback) {
   })
 }
 
-export async function createNotification({ userId, type, title, message, complaintId }) {
+export async function createNotification({ userId, type, title, message, complaintId, batchId }) {
   if (!db) throw new Error('Firestore not initialized')
   const ref = await addDoc(collection(db, NOTIFICATIONS_COLLECTION), {
     userId,
@@ -214,13 +217,16 @@ export async function createNotification({ userId, type, title, message, complai
     title,
     message,
     complaintId: complaintId || null,
+    batchId: batchId || null,
     read: false,
+    deleted: false,
+    deletedAt: null,
     createdAt: serverTimestamp(),
   })
   return ref.id
 }
 
-export async function batchCreateNotifications(userIds, { type, title, message, complaintId }) {
+export async function batchCreateNotifications(userIds, { type, title, message, complaintId, batchId }) {
   if (!db) throw new Error('Firestore not initialized')
   const col = collection(db, NOTIFICATIONS_COLLECTION)
   const chunks = []
@@ -238,7 +244,10 @@ export async function batchCreateNotifications(userIds, { type, title, message, 
         title,
         message,
         complaintId: complaintId || null,
+        batchId: batchId || null,
         read: false,
+        deleted: false,
+        deletedAt: null,
         createdAt: serverTimestamp(),
       })
       refs.push(ref.id)
@@ -246,6 +255,24 @@ export async function batchCreateNotifications(userIds, { type, title, message, 
     await batch.commit()
   }
   return refs
+}
+
+export async function fetchNotifications(userId) {
+  if (!db) return []
+  const q = query(
+    collection(db, NOTIFICATIONS_COLLECTION),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map(doc => {
+    const data = doc.data()
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt?.toDate?.() || data.createdAt,
+    }
+  }).filter(n => !n.deleted)
 }
 
 export function subscribeToNotifications(userId, callback, errorCallback) {
@@ -268,7 +295,7 @@ export function subscribeToNotifications(userId, callback, errorCallback) {
         ...data,
         createdAt: data.createdAt?.toDate?.() || data.createdAt,
       }
-    })
+    }).filter(n => !n.deleted)
     callback(notifications)
   }, (error) => {
     console.error('Notifications subscription error:', error)
@@ -294,6 +321,98 @@ export async function markAllNotificationsRead(userId) {
   const batch = writeBatch(db)
   snapshot.docs.forEach(d => batch.update(d.ref, { read: true }))
   await batch.commit()
+}
+
+export async function softDeleteNotification(notificationId) {
+  if (!db) throw new Error('Firestore not initialized')
+  const ref = doc(db, NOTIFICATIONS_COLLECTION, notificationId)
+  await updateDoc(ref, {
+    deleted: true,
+    deletedAt: serverTimestamp(),
+  })
+}
+
+export async function hardDeleteNotificationsByBatch(batchId) {
+  if (!db) throw new Error('Firestore not initialized')
+  const q = query(
+    collection(db, NOTIFICATIONS_COLLECTION),
+    where('batchId', '==', batchId)
+  )
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) return
+  const batch = writeBatch(db)
+  snapshot.docs.forEach(d => batch.delete(d.ref))
+  await batch.commit()
+}
+
+export async function logSentNotification(data) {
+  if (!db) throw new Error('Firestore not initialized')
+  const ref = await addDoc(collection(db, SENT_NOTIFICATIONS_COLLECTION), {
+    ...data,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export function subscribeToSentNotifications(callback, errorCallback) {
+  if (!db) {
+    errorCallback?.(new Error('Firestore not initialized'))
+    return () => {}
+  }
+
+  const q = query(
+    collection(db, SENT_NOTIFICATIONS_COLLECTION),
+    orderBy('createdAt', 'desc')
+  )
+
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
+    }))
+    callback(items)
+  }, (error) => {
+    console.error('Sent notifications subscription error:', error)
+    errorCallback?.(error)
+  })
+}
+
+export async function deleteSentNotificationLog(id) {
+  if (!db) throw new Error('Firestore not initialized')
+  const ref = doc(db, SENT_NOTIFICATIONS_COLLECTION, id)
+  await deleteDoc(ref)
+}
+
+export async function markBatchAsDeleted(batchId) {
+  if (!db) throw new Error('Firestore not initialized')
+  const ref = doc(db, COLLECTION, '_batchDeletions')
+  const snap = await getDoc(ref)
+  if (snap.exists()) {
+    await updateDoc(ref, {
+      deletedBatchIds: arrayUnion(batchId),
+      updatedAt: serverTimestamp(),
+    })
+  } else {
+    await setDoc(ref, {
+      deletedBatchIds: [batchId],
+      updatedAt: serverTimestamp(),
+    })
+  }
+}
+
+export function subscribeToDeletedBatches(callback, errorCallback) {
+  if (!db) {
+    errorCallback?.(new Error('Firestore not initialized'))
+    return () => {}
+  }
+  const ref = doc(db, COLLECTION, '_batchDeletions')
+  return onSnapshot(ref, (snap) => {
+    callback(snap.exists() ? (snap.data().deletedBatchIds || []) : [])
+  }, (error) => {
+    console.error('Deleted batches subscription error:', error)
+    errorCallback?.(error)
+  })
 }
 
 

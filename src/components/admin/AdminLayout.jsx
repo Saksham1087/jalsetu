@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthContext } from '../../contexts/AuthContext'
 import { useTheme } from '../../hooks/useTheme'
 import { AdminDashboard } from './AdminDashboard'
@@ -16,12 +16,22 @@ const navItems = [
   { id: 'trash', label: 'Deleted', icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' },
 ]
 
-export function AdminLayout({ complaints, deletedComplaints, onUpdateStatus, onDelete, onRestore, onNavigateHome }) {
-  const [activeNav, setActiveNav] = useState('dashboard')
+export function AdminLayout({ complaints, deletedComplaints, sentNotifications, onUpdateStatus, onDelete, onRestore, onNavigateHome, onDeleteSentNotification }) {
+  const [activeNav, setActiveNav] = useState(() => {
+    const match = window.location.hash.match(/^#\/admin\/(\w+)$/)
+    return match ? match[1] : 'dashboard'
+  })
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [selectedComplaint, setSelectedComplaint] = useState(null)
   const { user, logout } = useAuthContext()
   const { isDark, toggleTheme } = useTheme()
+
+  useEffect(() => {
+    const expected = activeNav === 'dashboard' ? '#/admin' : `#/admin/${activeNav}`
+    if (window.location.hash !== expected) {
+      window.location.hash = expected
+    }
+  }, [activeNav])
 
   return (
     <div className="min-h-screen flex">
@@ -155,6 +165,8 @@ export function AdminLayout({ complaints, deletedComplaints, onUpdateStatus, onD
           {activeNav === 'notify' && (
             <AdminSendNotification
               complaints={complaints}
+              sentNotifications={sentNotifications}
+              onDeleteSentNotification={onDeleteSentNotification}
             />
           )}
           {activeNav === 'trash' && (

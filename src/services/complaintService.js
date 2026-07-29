@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'jalsetu_complaints'
 const NOTIFICATION_KEY = 'jalsetu_notifications'
+const SENT_NOTIFICATION_KEY = 'jalsetu_sent_notifications'
+const DELETED_BATCHES_KEY = 'jalsetu_deleted_batches'
 
 import { generateDisplayId } from '../lib/ids'
 
@@ -28,6 +30,18 @@ const getNotifications = () => {
 
 const saveNotifications = (notifications) => {
   localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications))
+}
+
+const getSentNotifications = () => {
+  try {
+    return JSON.parse(localStorage.getItem(SENT_NOTIFICATION_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+const saveSentNotifications = (items) => {
+  localStorage.setItem(SENT_NOTIFICATION_KEY, JSON.stringify(items))
 }
 
 const generateId = () => crypto.randomUUID()
@@ -258,7 +272,7 @@ export const complaintService = {
     return demoComplaints
   },
 
-  async createNotification({ userId, type, title, message, complaintId }) {
+    async createNotification({ userId, type, title, message, complaintId, batchId }) {
     await delay(200)
     const notifications = getNotifications()
     const notification = {
@@ -268,7 +282,10 @@ export const complaintService = {
       title,
       message,
       complaintId: complaintId || null,
+      batchId: batchId || null,
       read: false,
+      deleted: false,
+      deletedAt: null,
       createdAt: new Date().toISOString(),
     }
     notifications.unshift(notification)
@@ -276,7 +293,7 @@ export const complaintService = {
     return notification
   },
 
-  async batchCreateNotifications(userIds, { type, title, message, complaintId }) {
+  async batchCreateNotifications(userIds, { type, title, message, complaintId, batchId }) {
     await delay(300)
     const notifications = getNotifications()
     const created = []
@@ -288,7 +305,10 @@ export const complaintService = {
         title,
         message,
         complaintId: complaintId || null,
+        batchId: batchId || null,
         read: false,
+        deleted: false,
+        deletedAt: null,
         createdAt: new Date().toISOString(),
       }
       notifications.unshift(notification)
@@ -298,9 +318,18 @@ export const complaintService = {
     return created
   },
 
+  async syncNotificationsFromFirestore(firestoreNotifications) {
+    const existing = getNotifications()
+    const existingIds = new Set(existing.map(n => n.id))
+    const newOnes = firestoreNotifications.filter(n => !existingIds.has(n.id))
+    if (newOnes.length > 0) {
+      saveNotifications([...newOnes, ...existing])
+    }
+  },
+
   subscribeToNotifications(userId, callback) {
     const notifications = getNotifications()
-      .filter(n => n.userId === userId)
+      .filter(n => n.userId === userId && !n.deleted)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     callback(notifications)
     return () => {}
@@ -327,5 +356,63 @@ export const complaintService = {
       }
     }
     if (changed) saveNotifications(notifications)
+  },
+
+  async softDeleteNotification(notificationId) {
+    await delay(100)
+    const notifications = getNotifications()
+    const idx = notifications.findIndex(n => n.id === notificationId)
+    if (idx !== -1) {
+      notifications[idx].deleted = true
+      notifications[idx].deletedAt = new Date().toISOString()
+      saveNotifications(notifications)
+    }
+  },
+
+  async hardDeleteNotificationsByBatch(batchId) {
+    await delay(200)
+    const notifications = getNotifications().filter(n => n.batchId !== batchId)
+    saveNotifications(notifications)
+  },
+
+  async logSentNotification(data) {
+    await delay(100)
+    const items = getSentNotifications()
+    const entry = {
+      id: generateId(),
+      ...data,
+      createdAt: new Date().toISOString(),
+    }
+    items.unshift(entry)
+    saveSentNotifications(items)
+    return entry.id
+  },
+
+  subscribeToSentNotifications(callback) {
+    const items = getSentNotifications()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    callback(items)
+    return () => {}
+  },
+
+  async deleteSentNotificationLog(id) {
+    await delay(100)
+    const items = getSentNotifications().filter(n => n.id !== id)
+    saveSentNotifications(items)
+  },
+
+  async markBatchAsDeleted(batchId) {
+    await delay(100)
+    const ids = JSON.parse(localStorage.getItem(DELETED_BATCHES_KEY) || '[]')
+    if (!ids.includes(batchId)) {
+      ids.push(batchId)
+      localStorage.setItem(DELETED_BATCHES_KEY, JSON.stringify(ids))
+    }
+  },
+
+  subscribeToDeletedBatches(callback) {
+    const ids = JSON.parse(localStorage.getItem(DELETED_BATCHES_KEY) || '[]')
+    callback(ids)
+    return () => {}
   },
 }

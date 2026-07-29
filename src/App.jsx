@@ -11,6 +11,7 @@ import { NotificationPanel } from './components/NotificationPanel'
 import { EmergencyButton } from './components/EmergencyButton'
 import { AdminLoginPage } from './components/AdminLoginPage'
 import { AdminLayout } from './components/admin/AdminLayout'
+import { useToast } from './components/Toast'
 
 const ChatWidget = lazy(() => import('./components/ChatWidget').then(m => ({ default: m.ChatWidget })))
 import { useComplaints } from './hooks/useComplaints'
@@ -28,13 +29,15 @@ function AppInner() {
   const [route, setRoute] = useState('main')
   const [adminComplaints, setAdminComplaints] = useState([])
   const [deletedComplaints, setDeletedComplaints] = useState([])
+  const [sentNotifications, setSentNotifications] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
 
   const { location, error: locationError, requestPermission } = useLocation()
   const { user, loading: authLoading, login, userRole, refreshRole } = useAuthContext()
   const { complaints, loading, error, submitComplaint, refresh } = useComplaints(location, user)
-  const { notifications, markRead, markAllRead } = useNotifications(user)
+  const { notifications, markRead, markAllRead, deleteNotification } = useNotifications(user)
+  const { toast } = useToast()
   useTheme()
 
   const tabFromHash = (hash) => {
@@ -46,7 +49,7 @@ function AppInner() {
     const hash = window.location.hash
     if (hash === '#/track') {
       window.location.hash = '#/dashboard'
-    } else if (hash === '#/admin' || hash === '#/admin/dashboard') {
+    } else if (hash.startsWith('#/admin')) {
       setRoute('admin')
     } else if (hash === '#/login') {
       setRoute('login')
@@ -65,7 +68,7 @@ function AppInner() {
       const hash = window.location.hash
       if (hash === '#/track') {
         window.location.hash = '#/dashboard'
-      } else if (hash === '#/admin' || hash === '#/admin/dashboard') {
+      } else if (hash.startsWith('#/admin')) {
         setRoute('admin')
       } else if (hash === '#/login') {
         setRoute('login')
@@ -95,7 +98,6 @@ function AppInner() {
     if (!appConfig.hasFirebase) {
       complaintService.seedDemoData()
       setAdminComplaints(complaintService.getAll())
-      return
     }
 
     const unsubscribe = subscribeToAllComplaints(
@@ -118,7 +120,15 @@ function AppInner() {
       (err) => console.error('Deleted complaints subscription error:', err)
     )
 
-    return () => { unsubscribe(); unsubscribeDeleted() }
+    const pollSent = () => complaintService.subscribeToSentNotifications((data) => setSentNotifications(data))
+    pollSent()
+    const sentInterval = setInterval(pollSent, 2000)
+
+    return () => {
+      unsubscribe();
+      unsubscribeDeleted();
+      clearInterval(sentInterval)
+    }
   }, [route, user, userRole])
 
   const handleLogin = useCallback(async () => {
@@ -180,6 +190,44 @@ function AppInner() {
     setShowProfile(true)
   }, [])
 
+  const handleNotificationDelete = useCallback(async (notificationId) => {
+    try {
+      await deleteNotification(notificationId)
+      toast.success('Notification deleted')
+    } catch {
+      toast.error('Failed to delete notification')
+    }
+  }, [deleteNotification, toast])
+
+  const handleDeleteSentNotification = useCallback(async (logId, batchId) => {
+    try {
+      if (!appConfig.hasFirebase) {
+        if (batchId) {
+          await complaintService.markBatchAsDeleted(batchId)
+          await complaintService.hardDeleteNotificationsByBatch(batchId)
+        }
+        await complaintService.deleteSentNotificationLog(logId)
+        complaintService.subscribeToSentNotifications((data) => setSentNotifications(data))
+      } else {
+        try {
+          const { markBatchAsDeleted, deleteSentNotificationLog } = await import('./services/firestore')
+          if (batchId) await markBatchAsDeleted(batchId)
+          await deleteSentNotificationLog(logId)
+        } catch {
+          if (batchId) {
+            await complaintService.markBatchAsDeleted(batchId)
+            await complaintService.hardDeleteNotificationsByBatch(batchId)
+          }
+          await complaintService.deleteSentNotificationLog(logId)
+          complaintService.subscribeToSentNotifications((data) => setSentNotifications(data))
+        }
+      }
+      toast.success('Notification deleted for all users')
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete notification')
+    }
+  }, [toast])
+
   const handleNotificationNavigateToComplaint = useCallback((notification) => {
     const complaint = complaints.find(c => c.id === notification.complaintId)
     if (complaint) {
@@ -219,10 +267,12 @@ function AppInner() {
       <AdminLayout
         complaints={adminComplaints}
         deletedComplaints={deletedComplaints}
+        sentNotifications={sentNotifications}
         onUpdateStatus={handleStatusUpdate}
         onDelete={handleComplaintDelete}
         onRestore={handleComplaintRestore}
         onNavigateHome={handleNavigateHome}
+        onDeleteSentNotification={handleDeleteSentNotification}
       />
     )
   }
@@ -315,6 +365,7 @@ function AppInner() {
           onMarkRead={markRead}
           onMarkAllRead={markAllRead}
           onNavigateToComplaint={handleNotificationNavigateToComplaint}
+          onDelete={handleNotificationDelete}
         />
       )}
 
