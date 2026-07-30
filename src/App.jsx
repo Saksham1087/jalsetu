@@ -6,6 +6,7 @@ import { Header } from './components/Header'
 import { BottomNav } from './components/BottomNav'
 import { ComplaintDetail } from './components/ComplaintDetail'
 import { Dashboard } from './components/Dashboard'
+import { AboutPage } from './components/AboutPage'
 import { ProfilePage } from './components/ProfilePage'
 import { NotificationPanel } from './components/NotificationPanel'
 import { EmergencyButton } from './components/EmergencyButton'
@@ -32,6 +33,7 @@ function AppInner() {
   const [sentNotifications, setSentNotifications] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
 
   const { location, error: locationError, requestPermission } = useLocation()
   const { user, loading: authLoading, login, userRole, refreshRole } = useAuthContext()
@@ -190,6 +192,14 @@ function AppInner() {
     setShowProfile(true)
   }, [])
 
+  const handleAboutClick = useCallback(() => {
+    setShowAbout(true)
+  }, [])
+
+  const handleAboutClose = useCallback(() => {
+    setShowAbout(false)
+  }, [])
+
   const handleNotificationDelete = useCallback(async (notificationId) => {
     try {
       await deleteNotification(notificationId)
@@ -284,10 +294,13 @@ function AppInner() {
         onLogin={handleLogin}
         onNotificationClick={handleNotificationClick}
         onProfileClick={handleProfileClick}
+        onAboutClick={handleAboutClick}
       />
 
       <main className="flex-1 min-h-0 relative flex flex-col pb-24">
-        {showProfile ? (
+        {showAbout ? (
+          <AboutPage onClose={handleAboutClose} />
+        ) : showProfile ? (
           <ProfilePage
             complaints={complaints}
             onClose={() => setShowProfile(false)}

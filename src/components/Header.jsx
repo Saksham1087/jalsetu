@@ -28,7 +28,7 @@ const WaterWave = () => (
   </div>
 )
 
-export function Header({ user, onLogin, onNotificationClick, onProfileClick }) {
+export function Header({ user, onLogin, onNotificationClick, onProfileClick, onAboutClick }) {
   const { isDark, toggleTheme } = useTheme()
   const { unreadCount } = useNotifications(user)
   const [showDropdown, setShowDropdown] = useState(false)
@@ -48,7 +48,7 @@ export function Header({ user, onLogin, onNotificationClick, onProfileClick }) {
   const showNotifications = !!user
 
   return (
-    <header className="bg-header/90 backdrop-blur-md safe-area-inset-top">
+    <header className="bg-header/90 backdrop-blur-md safe-area-inset-top relative z-50">
       <div className="px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="relative flex items-center justify-center w-8 h-8">
@@ -128,6 +128,17 @@ export function Header({ user, onLogin, onNotificationClick, onProfileClick }) {
                     </svg>
                     Profile
                   </button>
+                  <div className="h-px bg-border mx-3 my-1" />
+                  <button
+                    onClick={() => { setShowDropdown(false); onAboutClick?.() }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-text-primary hover:bg-surface transition-colors text-left"
+                  >
+                    <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    </svg>
+                    About Us
+                  </button>
+                  <div className="h-px bg-border mx-3 my-1" />
                   <button
                     onClick={() => { setShowDropdown(false); authCtx.logout() }}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-emergency hover:bg-emergency/5 transition-colors text-left"
