@@ -210,17 +210,19 @@ function EmptyState({ onTabChange }) {
 export function Dashboard({ complaints, loading, onComplaintSelect, onComplaintFound, onTabChange, onNotificationClick }) {
   const { user } = useAuthContext()
   const { notifications } = useNotifications(user)
+  const [viewMode, setViewMode] = useState('my')
 
   const myComplaints = complaints.filter(c => c.userId === user?.uid || c.userId === 'demo-user')
-  const total = myComplaints.length
-  const resolved = myComplaints.filter(c => c.status === 'resolved' || c.status === 'closed').length
+  const sourceComplaints = viewMode === 'city' ? complaints : myComplaints
+  const total = sourceComplaints.length
+  const resolved = sourceComplaints.filter(c => c.status === 'resolved' || c.status === 'closed').length
   const rate = total > 0 ? Math.round((resolved / total) * 100) : 0
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  const thisWeek = myComplaints.filter(c => new Date(c.createdAt) >= weekAgo).length
+  const thisWeek = sourceComplaints.filter(c => new Date(c.createdAt) >= weekAgo).length
 
   const showNotifications = !!user
 
-  if (loading && myComplaints.length === 0) {
+  if (loading && sourceComplaints.length === 0) {
     return (
       <div className="min-h-screen min-h-[100dvh] pb-24 safe-area-inset-bottom overflow-y-auto">
         <div className="px-4 pt-5 pb-6 space-y-5">
@@ -257,11 +259,35 @@ export function Dashboard({ complaints, loading, onComplaintSelect, onComplaintF
         {/* Welcome */}
         <div>
           <h2 className="font-display text-lg font-semibold text-text-primary">
-            {user ? `Welcome${user.displayName ? `, ${user.displayName.split(' ')[0]}` : ''}` : 'Welcome'}
+            {viewMode === 'city' ? 'JalSetu Overview' : user ? `Welcome${user.displayName ? `, ${user.displayName.split(' ')[0]}` : ''}` : 'Welcome'}
           </h2>
         </div>
 
-        {total === 0 ? (
+        {/* View toggle */}
+        <div className="flex bg-card border border-border rounded-xl p-0.5">
+          <button
+            onClick={() => setViewMode('my')}
+            className={`flex-1 touch-target min-h-[40px] px-4 py-2 text-sm font-medium rounded-[10px] transition-colors ${
+              viewMode === 'my'
+                ? 'bg-teal-600 text-white shadow-sm'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            My View
+          </button>
+          <button
+            onClick={() => setViewMode('city')}
+            className={`flex-1 touch-target min-h-[40px] px-4 py-2 text-sm font-medium rounded-[10px] transition-colors ${
+              viewMode === 'city'
+                ? 'bg-teal-600 text-white shadow-sm'
+                : 'text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            JalSetu Overview
+          </button>
+        </div>
+
+        {viewMode === 'my' && total === 0 ? (
           <EmptyState onTabChange={onTabChange} />
         ) : (
           <>
@@ -333,7 +359,7 @@ export function Dashboard({ complaints, loading, onComplaintSelect, onComplaintF
         {/* Recent Complaints (only when user has complaints) */}
         {total > 0 && (
           <RecentComplaints
-            complaints={myComplaints}
+            complaints={sourceComplaints}
             onComplaintSelect={onComplaintSelect}
           />
         )}
