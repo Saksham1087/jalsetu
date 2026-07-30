@@ -37,7 +37,7 @@ function AppInner() {
 
   const { location, error: locationError, requestPermission } = useLocation()
   const { user, loading: authLoading, login, userRole, refreshRole } = useAuthContext()
-  const { complaints, loading, error, submitComplaint, refresh } = useComplaints(location, user)
+  const { complaints, loading, error, submitComplaint, refresh } = useComplaints(user)
   const { notifications, markRead, markAllRead, deleteNotification } = useNotifications(user)
   const { toast } = useToast()
   useTheme()

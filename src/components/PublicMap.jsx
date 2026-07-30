@@ -202,6 +202,7 @@ export function PublicMap({
 }) {
   const [fbComplaints, setFbComplaints] = useState([])
   const [fbLoading, setFbLoading] = useState(appConfig.hasFirebase)
+  const [fbError, setFbError] = useState(null)
   const [filterType, setFilterType] = useState([])
   const [filterWard, setFilterWard] = useState('')
   const [myComplaintsOnly, setMyComplaintsOnly] = useState(false)
@@ -233,7 +234,7 @@ export function PublicMap({
     setFbLoading(true)
     const unsub = subscribeToAllComplaints(
       (data) => { setFbComplaints(data); setFbLoading(false) },
-      (_err) => { setFbLoading(false) },
+      (err) => { setFbError(err?.message || 'Failed to load complaints'); setFbLoading(false) },
     )
     return () => unsub?.()
   }, [])

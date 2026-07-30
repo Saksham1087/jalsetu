@@ -35,6 +35,18 @@ export function AdminLayout({ complaints, deletedComplaints, sentNotifications, 
     }
   }, [activeNav])
 
+  useEffect(() => {
+    const onHashChange = () => {
+      const match = window.location.hash.match(/^#\/admin\/(\w+)$/)
+      if (match && match[1] !== activeNav) {
+        setActiveNav(match[1])
+        setSelectedComplaint(null)
+      }
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [activeNav])
+
   return (
     <div className="min-h-screen flex">
       {/* Sidebar */}
@@ -149,7 +161,6 @@ export function AdminLayout({ complaints, deletedComplaints, sentNotifications, 
             <AdminDashboard
               complaints={complaints}
               onSelectComplaint={setSelectedComplaint}
-              onRefresh={() => {}}
             />
           )}
           {activeNav === 'complaints' && (

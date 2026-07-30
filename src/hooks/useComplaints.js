@@ -32,7 +32,7 @@ function normalizeData(items) {
   }))
 }
 
-export function useComplaints(userLocation, user) {
+export function useComplaints(user) {
   const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

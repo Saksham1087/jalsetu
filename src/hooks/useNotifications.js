@@ -17,7 +17,6 @@ const saveLocallyDeletedIds = (ids) => {
 
 export function useNotifications(user) {
   const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(true)
   const locallyDeletedRef = useRef(getLocallyDeletedIds())
   const deletedBatchesRef = useRef(new Set())
   const rawNotificationsRef = useRef([])
@@ -31,13 +30,11 @@ export function useNotifications(user) {
       return true
     })
     setNotifications(filtered)
-    setLoading(false)
   }, [])
 
   useEffect(() => {
     if (!userId) {
       setNotifications([])
-      setLoading(false)
       return
     }
 
@@ -159,5 +156,5 @@ export function useNotifications(user) {
     applyFilters()
   }, [applyFilters])
 
-  return { notifications, unreadCount, loading, markRead, markAllRead, deleteNotification }
+  return { notifications, unreadCount, markRead, markAllRead, deleteNotification }
 }

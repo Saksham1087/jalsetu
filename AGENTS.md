@@ -37,15 +37,15 @@ src/
 ├── lib/
 │   ├── firebase.js   # Firebase init, exports auth/db/functions
 │   └── config.js     # Feature flags (hasFirebase, hasCloudinary, hasGroq)
-├── utils/            # formatters, geo, chatLogic, groqChat, geminiChat
-├── styles/           # complaint-form.css, map.css (Leaflet overrides)
-└── App.jsx           # Tab routing (map/list/report), auth integration
+├── utils/            # formatters, geo, groqChat
+├── styles/           # map.css (Leaflet overrides)
+└── App.jsx           # Tab routing (dashboard/map/list/report), auth integration
 functions/            # Firebase Cloud Functions (CommonJS, Node 20)
 ```
 
 ## Key Components
 
-- `PublicMap.jsx` — Main map view (not MapView, which exists but is not the active map)
+- `PublicMap.jsx` — Main map view
 - `ChatWidget.jsx` — Groq-powered AI chat assistant
 - `ComplaintForm.jsx` — Multi-step submission with photo upload
 - `AuthContext.jsx` — Wraps app; provides `useAuthContext()` hook
@@ -54,7 +54,7 @@ functions/            # Firebase Cloud Functions (CommonJS, Node 20)
 
 - **Demo mode**: When `VITE_FIREBASE_API_KEY` is unset, `lib/config.js:isDemo = true`. Firebase gracefully degrades — app runs without backend.
 - **Vite base path**: Set to `/jalsetu/` in `vite.config.js` for GitHub Pages hosting. Local dev works fine; production URLs are `/jalsetu/*`.
-- **Cloud Functions** in `functions/index.js` — `chatWithAI` callable function does simple keyword matching (no external AI). Separate from the client-side Groq chat.
+- **Cloud Functions** in `functions/index.js` — callable functions for email confirmation.
 - **Firestore** stores complaints in `complaints` collection with `serverTimestamp()`, real-time subscriptions via `onSnapshot`.
 - **Photo uploads** go to Cloudinary (client-side) or Firebase Storage (in `firestore.js:uploadComplaintPhoto`).
 - **Tailwind config** (`tailwind.config.js`) defines custom colors: `primary` (sky), `water`, `warning`, `success`, `danger`, plus safe-area spacing.

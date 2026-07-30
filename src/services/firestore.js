@@ -275,34 +275,6 @@ export async function fetchNotifications(userId) {
   }).filter(n => !n.deleted)
 }
 
-export function subscribeToNotifications(userId, callback, errorCallback) {
-  if (!db) {
-    errorCallback?.(new Error('Firestore not initialized'))
-    return () => {}
-  }
-
-  const q = query(
-    collection(db, NOTIFICATIONS_COLLECTION),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
-  )
-
-  return onSnapshot(q, (snapshot) => {
-    const notifications = snapshot.docs.map(doc => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate?.() || data.createdAt,
-      }
-    }).filter(n => !n.deleted)
-    callback(notifications)
-  }, (error) => {
-    console.error('Notifications subscription error:', error)
-    errorCallback?.(error)
-  })
-}
-
 export async function markNotificationRead(notificationId) {
   if (!db) throw new Error('Firestore not initialized')
   const ref = doc(db, NOTIFICATIONS_COLLECTION, notificationId)
@@ -332,19 +304,6 @@ export async function softDeleteNotification(notificationId) {
   })
 }
 
-export async function hardDeleteNotificationsByBatch(batchId) {
-  if (!db) throw new Error('Firestore not initialized')
-  const q = query(
-    collection(db, NOTIFICATIONS_COLLECTION),
-    where('batchId', '==', batchId)
-  )
-  const snapshot = await getDocs(q)
-  if (snapshot.empty) return
-  const batch = writeBatch(db)
-  snapshot.docs.forEach(d => batch.delete(d.ref))
-  await batch.commit()
-}
-
 export async function logSentNotification(data) {
   if (!db) throw new Error('Firestore not initialized')
   const ref = await addDoc(collection(db, SENT_NOTIFICATIONS_COLLECTION), {
@@ -352,30 +311,6 @@ export async function logSentNotification(data) {
     createdAt: serverTimestamp(),
   })
   return ref.id
-}
-
-export function subscribeToSentNotifications(callback, errorCallback) {
-  if (!db) {
-    errorCallback?.(new Error('Firestore not initialized'))
-    return () => {}
-  }
-
-  const q = query(
-    collection(db, SENT_NOTIFICATIONS_COLLECTION),
-    orderBy('createdAt', 'desc')
-  )
-
-  return onSnapshot(q, (snapshot) => {
-    const items = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-    }))
-    callback(items)
-  }, (error) => {
-    console.error('Sent notifications subscription error:', error)
-    errorCallback?.(error)
-  })
 }
 
 export async function deleteSentNotificationLog(id) {

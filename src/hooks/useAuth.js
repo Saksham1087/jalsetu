@@ -95,5 +95,5 @@ export function useAuth() {
     setUserRole(role)
   }, [user])
 
-  return { user, loading, error, login, logout, userRole, refreshRole, isAuthenticated: !!user }
+  return { user, loading, error, login, logout, userRole, refreshRole }
 }
